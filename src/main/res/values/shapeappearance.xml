@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="shapeTopCorner30" parent="@style/Theme.MaterialComponents">
+        <item name="cornerSizeTopLeft">30dp</item>
+        <item name="cornerSizeTopRight">30dp</item>
+    </style>
+
+    <style name="shapeCorner" parent="@style/Theme.MaterialComponents">
+        <item name="cornerSize">50%</item>
+    </style>
+</resources>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!--<item name="android:windowAnimationStyle">@style/AnimationActivityBottom</item>-->
+    <style name="AnimationWindowBottom" parent="android:Animation">
+        <item name="android:windowEnterAnimation">@anim/anim_window_bottom_open_enter</item>
+        <item name="android:windowExitAnimation">@anim/anim_window_bottom_close_exit</item>
+    </style>
+
+    <style name="AnimationWindowRight" parent="android:Animation">
+        <item name="android:windowEnterAnimation">@anim/anim_activity_right_open_enter</item>
+        <item name="android:windowExitAnimation">@anim/anim_activity_right_close_exit</item>
+    </style>
+
+    <!--使用: <item name="android:windowAnimationStyle">@style/AnimationActivityBottom</item>-->
+    <style name="AnimationActivityBottom" parent="android:Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/anim_activity_bottom_open_enter</item>
+        <item name="android:activityOpenExitAnimation">@anim/anim_activity_bottom_open_exit</item>
+        <item name="android:activityCloseEnterAnimation">@anim/anim_activity_bottom_close_enter
+        </item>
+        <item name="android:activityCloseExitAnimation">@anim/anim_activity_bottom_close_exit</item>
+    </style>
+
+    <style name="AnimationActivityRight" parent="android:Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/anim_activity_right_open_enter</item>
+        <item name="android:activityOpenExitAnimation">@anim/anim_activity_left_open_exit</item>
+        <item name="android:activityCloseEnterAnimation">@anim/anim_activity_left_close_enter</item>
+        <item name="android:activityCloseExitAnimation">@anim/anim_activity_right_close_exit</item>
+    </style>
+
+</resources>
