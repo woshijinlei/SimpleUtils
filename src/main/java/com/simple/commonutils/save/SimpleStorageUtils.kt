@@ -139,20 +139,11 @@ object SimpleStorageUtils {
                 convertV21ImageMimeType(mimeType),
                 true
             )
-        val file = createDir(
-            Environment.getExternalStoragePublicDirectory(targetDictionary),
-            subDictionary
+        val contentUri = createEmptyImageInsertEdUri(
+            context,
+            contentValues
         )
-        return if (file != null) {
-            val contentUri =
-                createEmptyImageInsertEdUri(
-                    context,
-                    contentValues
-                )
-            saveMediaWithContentValues(context, data, contentUri)
-        } else {
-            null
-        }
+        return saveMediaWithContentValues(context, data, contentUri)
     }
 
     /**
@@ -301,20 +292,12 @@ object SimpleStorageUtils {
                 mimeType,
                 true
             )
-        val file = createDir(
-            Environment.getExternalStoragePublicDirectory(targetDictionary),
-            subDictionary
-        )
-        return if (file != null) {
-            val contentUri =
-                createEmptyFileInsertEdUri(
-                    context,
-                    contentValues
-                )
-            saveMediaWithContentValues(context, data, contentUri)
-        } else {
-            null
-        }
+        val contentUri =
+            createEmptyFileInsertEdUri(
+                context,
+                contentValues
+            )
+        return saveMediaWithContentValues(context, data, contentUri)
     }
 
     private suspend fun saveMediaWithContentValues(
@@ -331,6 +314,7 @@ object SimpleStorageUtils {
                         close()
                     }
                 } catch (e: Exception) {
+                    context.contentResolver.delete(contentUri, null, null)
                     throw e
                 }
             }
