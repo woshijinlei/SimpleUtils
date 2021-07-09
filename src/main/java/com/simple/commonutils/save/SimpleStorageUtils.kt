@@ -139,10 +139,17 @@ object SimpleStorageUtils {
                 convertV21ImageMimeType(mimeType),
                 true
             )
-        val contentUri = createEmptyImageInsertEdUri(
-            context,
-            contentValues
-        )
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            createDir(
+                Environment.getExternalStoragePublicDirectory(targetDictionary),
+                subDictionary
+            )
+        }
+        val contentUri =
+            createEmptyImageInsertEdUri(
+                context,
+                contentValues
+            )
         return saveMediaWithContentValues(context, data, contentUri)
     }
 
@@ -292,8 +299,14 @@ object SimpleStorageUtils {
                 mimeType,
                 true
             )
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            createDir(
+                Environment.getExternalStoragePublicDirectory(targetDictionary),
+                subDictionary
+            )
+        }
         val contentUri =
-            createEmptyFileInsertEdUri(
+            createEmptyImageInsertEdUri(
                 context,
                 contentValues
             )
@@ -416,7 +429,7 @@ object SimpleStorageUtils {
                 this.put(MediaColumns.IS_PENDING, 1)
                 this.put(
                     MediaColumns.DATE_EXPIRES,
-                    (System.currentTimeMillis() + DateUtils.DAY_IN_MILLIS) / 1000
+                    (System.currentTimeMillis() + DateUtils.DAY_IN_MILLIS)
                 )
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
