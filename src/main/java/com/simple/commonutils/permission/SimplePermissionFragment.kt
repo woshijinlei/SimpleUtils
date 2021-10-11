@@ -125,6 +125,11 @@ class SimplePermissionFragment : androidx.fragment.app.Fragment() {
                 .show()
         }
 
+        /**
+         * 1.点击不再提示后，再请求权限是不会出现请求页面的，直接返回false
+         * 2.android 11，One-time permissions，增加了Only this time选项，如果退到后台会保留一段时间的access
+         * 3.android 11，Auto-reset permissions from unused apps
+         */
         fun requestPermission(
             fragmentActivity: FragmentActivity,
             permissions: MutableList<String>,
