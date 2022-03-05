@@ -10,18 +10,18 @@ import androidx.annotation.RequiresApi
 import com.simple.commonutils.log
 
 /**
- * Theme中不需要设置任何SystemUI相关的配置
+ * Theme中不需要设置SystemUI相关的配置
  * 部分api兼容R版本
  */
 class SystemUIHelper(private val window: Window) {
     private val handler = Handler(Looper.getMainLooper())
     private val commonDelay = 3000L
+    private val TRANSLUCENT = Color.parseColor("#66000000")
 
     /**
      * 控制statusBar的显示和隐藏
      * 非完全兼容，R版本下滑statusBar内容区并不是stable
      */
-    @RequiresApi(Build.VERSION_CODES.KITKAT)
     fun hideStatusBarR(
         isSticky: Boolean = true,
         stickyDuration: Long = commonDelay
@@ -40,7 +40,7 @@ class SystemUIHelper(private val window: Window) {
      * 不会隐藏navigationBar
      * 发现statusBar会有黑边
      */
-    fun hideStatusBarByWindowFlag() {
+    private fun hideStatusBarByWindowFlag() {
         cutoutShortEdge()
         window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
     }
@@ -48,7 +48,6 @@ class SystemUIHelper(private val window: Window) {
     /**
      * 隐藏掉statusBar和navigationBar,并且全屏显示内容
      */
-    @RequiresApi(Build.VERSION_CODES.KITKAT)
     fun hideStatusNavigationBarR(isSticky: Boolean = true, stickyDuration: Long = commonDelay) {
         window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         cutoutShortEdge()
@@ -57,6 +56,26 @@ class SystemUIHelper(private val window: Window) {
         } else {
             hideStatusNavigationByDecorView(isSticky, stickyDuration)
         }
+    }
+
+    /**
+     * statusBar半透明
+     * 内容区延伸到状态栏
+     */
+    fun translucentStatusBar() {
+        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        window.statusBarColor = TRANSLUCENT
+        contentStableExtendStatusBar()
+    }
+
+    /**
+     * statusBar半透明
+     * 内容区延伸到状态栏
+     */
+    private fun translucentStatusBarByWindowFlag() {
+        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
+        contentStableExtendStatusBar()
     }
 
     /**
@@ -109,16 +128,6 @@ class SystemUIHelper(private val window: Window) {
     }
 
     /**
-     * statusBar半透明
-     * 内容区延伸到状态栏
-     */
-    fun translucentStatusBar() {
-        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-        window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
-        contentStableExtendStatusBar()
-    }
-
-    /**
      * 1.使statusBar和navigationBar变得完全透明
      * 2.布局内容全部充满
      * 用在启动页(无法设置状态栏和导航栏颜色)
@@ -132,7 +141,6 @@ class SystemUIHelper(private val window: Window) {
      * 触摸边界，会重新出现状态栏和导航栏，并且会自动显示隐藏（区别： lean模式是点击屏幕）
      * statusBar和navigationBar都为半透明颜色
      */
-    @RequiresApi(Build.VERSION_CODES.KITKAT)
     fun immersiveMode() {
         window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         cutoutShortEdge()
@@ -237,7 +245,6 @@ class SystemUIHelper(private val window: Window) {
             (View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
     }
 
-    @RequiresApi(Build.VERSION_CODES.KITKAT)
     private fun hideStatusNavigationByDecorView(
         isSticky: Boolean,
         stickyDuration: Long
@@ -273,7 +280,6 @@ class SystemUIHelper(private val window: Window) {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.KITKAT)
     private fun hideStatusBarByDecorView(
         isSticky: Boolean,
         isContentExtendNav: Boolean,
