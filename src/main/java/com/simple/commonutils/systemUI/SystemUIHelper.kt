@@ -16,37 +16,49 @@ import com.simple.commonutils.log
 class SystemUIHelper(private val window: Window) {
     private val handler = Handler(Looper.getMainLooper())
     private val commonDelay = 3000L
+
     private val TRANSLUCENT = Color.parseColor("#66000000")
 
     /**
-     * 控制statusBar的显示和隐藏
-     * 非完全兼容，R版本下滑statusBar内容区并不是stable
+     * 1.隐藏statusBar
+     * 2.内容延伸到statusBar
+     * 3.下滑statusBar内容区并不是stable，但是保证内容不被遮盖
      */
-    fun hideStatusBarR(
+    fun hideStatusBarResizeR(
         isSticky: Boolean = true,
         stickyDuration: Long = commonDelay
     ) {
         window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         cutoutShortEdge()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            hideStatusBarApiR(isSticky)
+            hideStatusBarApiR(isSticky, stickyDuration)
         } else {
-            hideStatusBarByDecorView(isSticky, false, stickyDuration)
+            hideStatusBarByDecorView(
+                isSticky = isSticky,
+                isContentExtendNav = false,
+                stickyDuration = stickyDuration,
+                instanceShow = true
+            )
         }
     }
 
     /**
-     * 系统会自动隐藏statusBar, 且为半透明内容延伸到statusBar
-     * 不会隐藏navigationBar
-     * 发现statusBar会有黑边
+     * 1.隐藏statusBar
+     * 2.内容延伸到statusBar
+     * 3.内容区并是stable的，不会跟随statusBar下滑
      */
-    private fun hideStatusBarByWindowFlag() {
+    fun hideStatusBar(
+        isSticky: Boolean = true,
+        stickyDuration: Long = commonDelay
+    ) {
+        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         cutoutShortEdge()
-        window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        hideStatusBarByDecorView(isSticky, false, stickyDuration, false)
     }
 
     /**
-     * 隐藏掉statusBar和navigationBar,并且全屏显示内容
+     * 1.隐藏statusBar和navigationBar
+     * 2.全屏显示内容
      */
     fun hideStatusNavigationBarR(isSticky: Boolean = true, stickyDuration: Long = commonDelay) {
         window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
@@ -59,8 +71,8 @@ class SystemUIHelper(private val window: Window) {
     }
 
     /**
-     * statusBar半透明
-     * 内容区延伸到状态栏
+     * 1.statusBar半透明
+     * 2.内容区延伸到状态栏
      */
     fun translucentStatusBar() {
         window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
@@ -69,29 +81,21 @@ class SystemUIHelper(private val window: Window) {
     }
 
     /**
-     * statusBar半透明
-     * 内容区延伸到状态栏
-     */
-    private fun translucentStatusBarByWindowFlag() {
-        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-        window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
-        contentStableExtendStatusBar()
-    }
-
-    /**
      * 1.statusBar全透明
-     * 2.M版本自动light
-     * 3.内容区延伸到状态栏
+     * 2.内容区延伸到状态栏
      */
-    fun transparentStatusBar() {
+    fun transparentStatusBar(isLightStatusBar: Boolean = true) {
         window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         cutoutShortEdge()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            window.decorView.systemUiVisibility = (
-                    View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-                            or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    )
+            window.decorView.systemUiVisibility = if (isLightStatusBar) {
+                (View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                        or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+            } else {
+                (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+            }
         } else {
             window.decorView.systemUiVisibility = (
                     View.SYSTEM_UI_FLAG_LAYOUT_STABLE
@@ -103,7 +107,8 @@ class SystemUIHelper(private val window: Window) {
 
     /**
      * 1.statusBar全透明
-     * 2.内容区不会延伸到状态栏
+     * 2.内容区不会延伸到状态栏，这是和[transparentStatusBar]主要区别
+     * 3.这个方法主要是因为内容区背景为白色时，状态栏会重叠
      */
     fun lightStatusBarR(statusBarColor: Int = Color.TRANSPARENT) {
         window.statusBarColor = statusBarColor
@@ -130,7 +135,7 @@ class SystemUIHelper(private val window: Window) {
     /**
      * 1.使statusBar和navigationBar变得完全透明
      * 2.布局内容全部充满
-     * 用在启动页(无法设置状态栏和导航栏颜色)
+     * 用在启动页，其他场景不好控制(无法设置状态栏和导航栏颜色)
      */
     fun transparentStatusNavigationBar(isHideNavigationBar: Boolean = false) {
         window.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
@@ -161,7 +166,8 @@ class SystemUIHelper(private val window: Window) {
      * 点击屏幕，就会恢复状态栏和导航栏
      * statusBar和navigationBar颜色为指定的默认颜色
      */
-    fun leanBackMode(isSticky: Boolean = true, stickyDuration: Long = commonDelay) {
+    @Deprecated("R版本已经没有作用")
+    private fun leanBackMode(isSticky: Boolean = true, stickyDuration: Long = commonDelay) {
         window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         cutoutShortEdge()
         val visibly =
@@ -194,6 +200,27 @@ class SystemUIHelper(private val window: Window) {
         window.decorView.systemUiVisibility = 0//恢复常态
     }
 
+    /**
+     * 系统会自动隐藏statusBar且为半透明
+     * 内容延伸到statusBar
+     * 不会隐藏navigationBar
+     * 发现statusBar会有黑边
+     */
+    private fun hideStatusBarByWindowFlag() {
+        cutoutShortEdge()
+        window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+    }
+
+    /**
+     * 1.statusBar半透明
+     * 2.内容区延伸到状态栏
+     */
+    private fun translucentStatusBarByWindowFlag() {
+        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
+        contentStableExtendStatusBar()
+    }
+
     private fun cutoutShortEdge() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             window.attributes.layoutInDisplayCutoutMode =
@@ -202,7 +229,7 @@ class SystemUIHelper(private val window: Window) {
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    private fun hideStatusBarApiR(isSticky: Boolean = true) {
+    private fun hideStatusBarApiR(isSticky: Boolean = true, stickyDuration: Long) {
         window.decorView.windowInsetsController?.hide(WindowInsets.Type.statusBars())
         if (isSticky) {
             window.decorView.setOnApplyWindowInsetsListener { _, insets ->
@@ -212,7 +239,7 @@ class SystemUIHelper(private val window: Window) {
                     if (insets.isVisible(WindowInsets.Type.statusBars())) {
                         window.decorView.windowInsetsController?.hide(WindowInsets.Type.statusBars())
                     }
-                }, commonDelay)
+                }, stickyDuration)
                 return@setOnApplyWindowInsetsListener window.decorView.onApplyWindowInsets(insets)
             }
         }
@@ -283,7 +310,8 @@ class SystemUIHelper(private val window: Window) {
     private fun hideStatusBarByDecorView(
         isSticky: Boolean,
         isContentExtendNav: Boolean,
-        stickyDuration: Long
+        stickyDuration: Long,
+        instanceShow: Boolean = false
     ) {
         val visibly = if (isContentExtendNav)
             (View.SYSTEM_UI_FLAG_IMMERSIVE
@@ -295,9 +323,14 @@ class SystemUIHelper(private val window: Window) {
                 or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                 or View.SYSTEM_UI_FLAG_FULLSCREEN)
         window.decorView.systemUiVisibility = visibly
-        if (isSticky) {
-            window.decorView.setOnSystemUiVisibilityChangeListener { visibility ->
-                if (visibility != visibly) {
+        window.decorView.setOnSystemUiVisibilityChangeListener { visibility ->
+            if (visibility != visibly) {
+                if (instanceShow) {
+                    if (visibility and View.SYSTEM_UI_FLAG_FULLSCREEN == 0) {
+                        window.decorView.systemUiVisibility = 0
+                    }
+                }
+                if (isSticky) {
                     handler.removeCallbacksAndMessages(null)
                     handler.postDelayed({
                         if (visibility and View.SYSTEM_UI_FLAG_FULLSCREEN == 0) {
