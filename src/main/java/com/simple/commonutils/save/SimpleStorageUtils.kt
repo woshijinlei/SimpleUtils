@@ -11,17 +11,18 @@ import android.provider.MediaStore
 import android.provider.MediaStore.MediaColumns
 import android.text.format.DateUtils
 import androidx.core.net.toUri
+import com.simple.commonutils.logE
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.*
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.InputStream
 import java.util.*
 
 /**
  * 兼容9.0创建文件的方式，不需要配置requestLegacyExternalStorage="true"
- * 大于等于p: MediaStore插入文件不需要权限
- * 小于p: 需要写入权限
- *
- * 测试:模拟器5.0  模拟器8.0  模拟器10.0  真机6.0  真机10.0  ok
+ * 大于等于p(SDK29): MediaStore插入文件不需要权限，但是根据文件类型会限制一些特定的目录，小于p: 需要写入权限
  */
 @Suppress("BlockingMethodInNonBlockingContext")
 object SimpleStorageUtils {
@@ -29,34 +30,80 @@ object SimpleStorageUtils {
     /**
      * 直接将bitmap插入图库
      *
-     * 插入目标路径: /storage/emulated/0/DCIM/Camera/xxx.jpg
+     * 插入目标路径: /storage/emulated/0/DCIM/Camera/xxx.xxx
      * 媒体库uri: content://media/external/images/media/xx
+     *
+     * @return contentUri: content://media/external/images/media/72
      */
-    suspend fun saveBitmapToCamera(context: Context, bitmap: Bitmap): Uri? {
-        return withContext<Uri?>(Dispatchers.IO) {
+    suspend fun saveBitmapToCamera(
+        context: Context,
+        bitmap: Bitmap,
+        format: Bitmap.CompressFormat
+    ): Uri? {
+        return withContext(Dispatchers.IO) {
             val fileOp = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, fileOp)
+            val t = when (format) {
+                Bitmap.CompressFormat.JPEG -> "jpg"
+                Bitmap.CompressFormat.PNG -> "png"
+                else -> "webp"
+            }
+            bitmap.compress(format, 100, fileOp)
             saveImageFileWithContentValues(
                 context,
-                ByteArrayInputStream(fileOp.toByteArray()),
-                "${System.currentTimeMillis()}.jpg",
-                Environment.DIRECTORY_DCIM,
-                "Camera"
+                ByteArrayInputStream(fileOp.toByteArray()), "${System.currentTimeMillis()}.${t}",
+                Environment.DIRECTORY_DCIM, "Camera"
             )
         }
     }
 
     /**
+     *
      * 9.0:
      * MediaStore.Images只能在[DCIM, Pictures]下建立文件
-     *
-     * Exception:
-     * java.lang.IllegalArgumentException:
+     * Exception: java.lang.IllegalArgumentException:
      * Primary directory Alarms not allowed for content://media/external/images/media;
      * allowed directories are [DCIM, Pictures]
      *
+     * @return contentUri: content://media/external/images/media/72
+     */
+    suspend fun saveImageFileWithContentValues(
+        context: Context,
+        data: InputStream,
+        displayName: String,
+        targetDictionary: String = Environment.DIRECTORY_DCIM,
+        subDictionary: String = context.packageName,
+        mimeType: String = "image/*"
+    ): Uri? {
+        createDir(
+            Environment.getExternalStoragePublicDirectory(targetDictionary),
+            subDictionary
+        )
+        val contentValues =
+            createContentValues(
+                displayName, "${targetDictionary}/${subDictionary}",
+                mimeType
+            )
+        val contentUri = createEmptyImageInsertEdUri(context, contentValues)
+        return contentUri?.let {
+            saveMediaWithContentValues(
+                context, data,
+                it, contentValues.getAsString(MediaColumns.DATA)
+            )
+        }
+    }
+
+    /**
      * 大于等于9.0使用MediaStore
      * 小于9.0使用文件写入和发送扫描广播
+     *
+     * 9.0:
+     * MediaStore.Images只能在[DCIM, Pictures]下建立文件
+     * Exception: java.lang.IllegalArgumentException:
+     * Primary directory Alarms not allowed for content://media/external/images/media;
+     * allowed directories are [DCIM, Pictures]
+     *
+     * @return contentUri: content://media/external/images/media/72
+     *         fileUri: file:///storage/emulated/0/DCIM/com.simple.simplecontainer/person2.jpg
      */
     suspend fun saveImageFileWithScan(
         context: Context,
@@ -69,32 +116,26 @@ object SimpleStorageUtils {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val contentValues =
                 createContentValues(
-                    displayName,
-                    "${targetDictionary}/${subDictionary}",
-                    convertV21ImageMimeType(mimeType)
+                    displayName, "${targetDictionary}/${subDictionary}",
+                    mimeType
                 )
-            val contentUri =
-                createEmptyImageInsertEdUri(
-                    context,
-                    contentValues
-                )
-            return saveMediaWithContentValues(context, data, contentUri)
+            val contentUri = createEmptyImageInsertEdUri(context, contentValues)
+            return contentUri?.let {
+                saveMediaWithContentValues(context, data, it)
+            }
         } else {
-            val f = createFile(
+            val file = createFile(
                 Environment.getExternalStoragePublicDirectory(targetDictionary),
-                subDictionary,
-                displayName
+                subDictionary, displayName
             )
             return withContext(Dispatchers.IO) {
-                f.writeBytes(data.readBytes())
-                f.toUri().apply {
+                file.writeBytes(data.readBytes())
+                file.toUri().apply {
+                    // ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,0)
                     withContext(Dispatchers.Main.immediate) {
                         (this@apply).let {
                             context.sendBroadcast(
-                                Intent(
-                                    Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
-                                    (this@apply)
-                                )
+                                Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, (this@apply))
                             )
                         }
                     }
@@ -104,114 +145,88 @@ object SimpleStorageUtils {
     }
 
     /**
-     * 9.0:
-     * MediaStore.Images只能在[DCIM, Pictures]下建立文件
-     *
-     * Exception:
-     * java.lang.IllegalArgumentException:
-     * Primary directory Alarms not allowed for content://media/external/images/media;
-     * allowed directories are [DCIM, Pictures]
-     *
-     * contentValues:
-     * _data=/storage/emulated/0/DCIM/com.simple.storeage/1612120640686.png
-     * date_added=1612120640686
-     * _display_name=1612120640686.png
-     * date_modified=1612120640686
-     * mime_type=image/
-     *
-     * contentUri:
-     * content://media/external/images/media/72
-     *
-     * 这种方式先配置contentValues申请插入图库，返回空的uri，再将内容流写入到这个uri中
-     */
-    suspend fun saveImageFileWithContentValues(
-        context: Context,
-        data: InputStream,
-        displayName: String,
-        targetDictionary: String = Environment.DIRECTORY_DCIM,
-        subDictionary: String = context.packageName,
-        mimeType: String = "image/*"
-    ): Uri? {
-        val contentValues =
-            createContentValues(
-                displayName,
-                "${targetDictionary}/${subDictionary}",
-                convertV21ImageMimeType(mimeType),
-                true
-            )
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            createDir(
-                Environment.getExternalStoragePublicDirectory(targetDictionary),
-                subDictionary
-            )
-        }
-        val contentUri =
-            createEmptyImageInsertEdUri(
-                context,
-                contentValues
-            )
-        return saveMediaWithContentValues(context, data, contentUri)
-    }
-
-    /**
      * 系统标记为过时，但是各个版本测试依然有效
      * 但是不能指定插入的文件夹，比如图库目录
      */
-    fun saveImage(context: Context, file: File?) {
-        if ((file == null || !file.exists())) {
-            return
-        }
-        try {
+    suspend fun saveImage(context: Context, imagePath: String, displayName: String): String? {
+        if ((imagePath.isBlank())) return null
+        return withContext(Dispatchers.IO) {
             MediaStore.Images.Media.insertImage(
                 context.contentResolver,
-                file.absolutePath,
-                file.name,
-                null
-            )
-        } catch (e: FileNotFoundException) {
+                imagePath,
+                displayName, null
+            )?.also {
+                context.sendBroadcast(
+                    Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.parse(it))
+                )
+            }
         }
-        context.sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(file)))
     }
 
     /**
-     * 保存到DCIM/Camera文件下
-     * 参考华为p20保存到Camera文件下
+     * 插入到Environment.DIRECTORY_MOVIES目录
+     */
+    suspend fun saveVideoFileWithContentValues(
+        context: Context,
+        data: InputStream,
+        displayName: String,
+        targetDictionary: String = Environment.DIRECTORY_MOVIES,
+        subDictionary: String = "",
+        mimeType: String = "video/*"
+    ): Uri? {
+        createDir(
+            Environment.getExternalStoragePublicDirectory(targetDictionary),
+            subDictionary
+        )
+        val contentValues =
+            createContentValues(
+                displayName, "${targetDictionary}/${subDictionary}",
+                mimeType
+            )
+        val contentUri =
+            createEmptyVideoInsertEdUri(context, contentValues)
+        return contentUri?.let {
+            saveMediaWithContentValues(
+                context, data, it,
+                contentValues.getAsString(MediaColumns.DATA)
+            )
+        }
+    }
+
+    /**
+     * 插入到Environment.DIRECTORY_MOVIES目录
+     * @return contentUri: content://media/external/images/media/72
+     *         fileUri: file:///storage/emulated/0/Movies/com.simple.simplecontainer/vip.mp4
      */
     suspend fun saveVideoFileWithScan(
         context: Context,
         data: InputStream,
         displayName: String,
+        targetDictionary: String = Environment.DIRECTORY_MOVIES,
+        subDictionary: String = "",
         mimeType: String = "video/*"
     ): Uri? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val contentValues =
                 createContentValues(
-                    displayName,
-                    "${Environment.DIRECTORY_DCIM}/Camera",
+                    displayName, "${targetDictionary}/${subDictionary}",
                     mimeType
                 )
             val contentUri =
-                createEmptyVideoInsertEdUri(
-                    context,
-                    contentValues
-                )
+                createEmptyVideoInsertEdUri(context, contentValues)
             return saveMediaWithContentValues(context, data, contentUri)
         } else {
-            val f = createFile(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
-                "Camera",
-                displayName
+            val file = createFile(
+                Environment.getExternalStoragePublicDirectory(targetDictionary),
+                subDictionary, displayName
             )
             return withContext(Dispatchers.IO) {
-                f.writeBytes(data.readBytes())
-                f.toUri().apply {
+                file.writeBytes(data.readBytes())
+                file.toUri().apply {
                     withContext(Dispatchers.Main.immediate) {
                         (this@apply).let {
                             context.sendBroadcast(
-                                Intent(
-                                    Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
-                                    (this@apply)
-                                )
+                                Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, (this@apply))
                             )
                         }
                     }
@@ -224,8 +239,7 @@ object SimpleStorageUtils {
      * 9.0:
      * MediaStore.Files只能在[Download, Documents]下建立文件
      *
-     * Exception:
-     * java.lang.IllegalArgumentException:
+     * Exception: java.lang.IllegalArgumentException:
      * Primary directory Alarms not allowed for content://media/external/file;
      * allowed directories are [Download, Documents]
      */
@@ -238,21 +252,17 @@ object SimpleStorageUtils {
         mimeType: String = "text/*"
     ): Uri? {
         return if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            val f = createFile(
+            val file = createFile(
                 Environment.getExternalStoragePublicDirectory(targetDictionary),
-                subDictionary,
-                displayName
+                subDictionary, displayName
             )
             withContext(Dispatchers.IO) {
-                f.writeBytes(data.readBytes())
-                f.toUri().apply {
+                file.writeBytes(data.readBytes())
+                file.toUri().apply {
                     withContext(Dispatchers.Main.immediate) {
                         (this@apply).let {
                             context.sendBroadcast(
-                                Intent(
-                                    Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
-                                    (this@apply)
-                                )
+                                Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, (this@apply))
                             )
                         }
                     }
@@ -261,26 +271,20 @@ object SimpleStorageUtils {
         } else {
             val contentValues =
                 createContentValues(
-                    displayName,
-                    "${targetDictionary}/${subDictionary}",
-                    mimeType
+                    displayName, "${targetDictionary}/${subDictionary}", mimeType
                 )
-            val contentUri =
-                createEmptyFileInsertEdUri(
-                    context,
-                    contentValues
-                )
-            saveMediaWithContentValues(context, data, contentUri)
+            val contentUri = createEmptyFileInsertEdUri(context, contentValues)
+            return contentUri?.let {
+                saveMediaWithContentValues(context, data, it)
+            }
         }
-
     }
 
     /**
      * 9.0:
      * MediaStore.Files只能在[Download, Documents]下建立文件
      *
-     * Exception:
-     * java.lang.IllegalArgumentException:
+     * Exception: java.lang.IllegalArgumentException:
      * Primary directory Alarms not allowed for content://media/external/file;
      * allowed directories are [Download, Documents]
      */
@@ -292,25 +296,22 @@ object SimpleStorageUtils {
         subDictionary: String = context.packageName,
         mimeType: String = "text/*"
     ): Uri? {
+        createDir(
+            Environment.getExternalStoragePublicDirectory(targetDictionary),
+            subDictionary
+        )
         val contentValues =
             createContentValues(
-                displayName,
-                "${targetDictionary}/${subDictionary}",
-                mimeType,
-                true
+                displayName, "${targetDictionary}/${subDictionary}",
+                mimeType
             )
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            createDir(
-                Environment.getExternalStoragePublicDirectory(targetDictionary),
-                subDictionary
+        val contentUri = createEmptyFileInsertEdUri(context, contentValues)
+        return contentUri?.let {
+            saveMediaWithContentValues(
+                context, data, it,
+                contentValues.getAsString(MediaColumns.DATA)
             )
         }
-        val contentUri =
-            createEmptyImageInsertEdUri(
-                context,
-                contentValues
-            )
-        return saveMediaWithContentValues(context, data, contentUri)
     }
 
     private suspend fun saveMediaWithContentValues(
@@ -336,8 +337,13 @@ object SimpleStorageUtils {
             publishUri(context, it, path)
         }
         withContext(Dispatchers.Main.immediate) {
-            contentUri?.let {
-                context.sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, contentUri))
+            path?.let {
+                context.sendBroadcast(
+                    Intent(
+                        Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
+                        File(path).toUri()
+                    )
+                )
             }
         }
         return contentUri
@@ -353,17 +359,9 @@ object SimpleStorageUtils {
             values.putNull(MediaColumns.DATE_EXPIRES)
             values.put(MediaColumns.IS_PENDING, 0)
             path?.let {
-                values.put(MediaColumns.RELATIVE_PATH, path)
+                values.put(MediaColumns.DATA, path)
             }
             context.contentResolver.update(uri, values, null, null)
-        }
-    }
-
-    private fun convertV21ImageMimeType(mimeType: String): String {
-        return if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.LOLLIPOP) {
-            "image/jpeg"
-        } else {
-            mimeType
         }
     }
 
@@ -410,8 +408,7 @@ object SimpleStorageUtils {
     private fun createContentValues(
         displayName: String,
         subDictionary: String,
-        mimeType: String,
-        needPath: Boolean = false
+        mimeType: String
     ): ContentValues {
         return ContentValues().apply {
             this.put(
@@ -422,24 +419,21 @@ object SimpleStorageUtils {
                 MediaColumns.MIME_TYPE,
                 Objects.requireNonNull<String>(mimeType)
             )
+            this.put(MediaColumns.TITLE, displayName)
             val now = System.currentTimeMillis()
-            this.put(MediaColumns.DATE_ADDED, now)
-            this.put(MediaColumns.DATE_MODIFIED, now)
+            this.put(MediaColumns.DATE_ADDED, now / 1000)
+            this.put(MediaColumns.DATE_MODIFIED, now / 1000)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                this.put(MediaColumns.RELATIVE_PATH, subDictionary)
                 this.put(MediaColumns.IS_PENDING, 1)
                 this.put(
                     MediaColumns.DATE_EXPIRES,
-                    (System.currentTimeMillis() + DateUtils.DAY_IN_MILLIS)
+                    (System.currentTimeMillis() + DateUtils.DAY_IN_MILLIS) / 1000
                 )
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                this.put(MediaColumns.RELATIVE_PATH, subDictionary)
             } else {
-                if (needPath) {
-                    val path =
-                        "${Environment.getExternalStorageDirectory()}/$subDictionary/$displayName"
-                    this.put(MediaColumns.DATA, path)
-                }
+                val path =
+                    "${Environment.getExternalStorageDirectory()}/$subDictionary/$displayName"
+                this.put(MediaColumns.DATA, path)
             }
         }
     }
@@ -470,11 +464,7 @@ object SimpleStorageUtils {
         }
         val dir = File(parentDirFile, subDirFile)
         return if (dir.exists()) {
-            if (dir.isDirectory) {
-                dir
-            } else {
-                null
-            }
+            if (dir.isDirectory) dir else null
         } else {
             dir.mkdir()
             dir
