@@ -367,4 +367,18 @@ class SystemUIHelper(private val window: Window) {
         return resources.getDimensionPixelSize(resourceId)
     }
 
+    fun readSystemBarColor(context: Context): Pair<Int, Int> {
+        // Reads the colors for navigation and status bar from resources.
+        val typedArray = context.obtainStyledAttributes(
+            intArrayOf(
+                android.R.attr.statusBarColor,
+                android.R.attr.navigationBarColor
+            )
+        )
+        val statusBarColor = typedArray.getColor(0, 0)
+        val navigationBarColor = typedArray.getColor(1, 0)
+        typedArray.recycle()
+        return statusBarColor to navigationBarColor
+    }
+
 }
