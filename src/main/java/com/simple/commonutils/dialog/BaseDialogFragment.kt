@@ -3,15 +3,12 @@
 package com.simple.commonutils.dialog
 
 import android.annotation.SuppressLint
-import android.content.res.Resources
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.*
-import androidx.appcompat.widget.ThemeUtils
-import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.setPadding
 import androidx.fragment.app.DialogFragment
 import com.simple.commonutils.R
@@ -30,6 +27,7 @@ import com.simple.commonutils.R
 //onResume
 /**
  * 内容区全屏(自定义中间的dialog)，前后台切换动画消除，背景没有dim值，状态栏和导航栏设置
+ * 全透明会造成icon图标在白色背景下变得不可见，可以重写[isLightNavigationBar] [isLightStatusBar]，但是底版本不支持
  */
 abstract class BaseDialogFragment : DialogFragment() {
 
@@ -38,22 +36,26 @@ abstract class BaseDialogFragment : DialogFragment() {
     enum class Style {
         /**
          * 默认状态栏和导航栏
+         * (可以在style[R.style.DialogThemeDefault]中设置systemBar颜色)
          */
         Default,
 
         /**
          * 全透明状态栏和默认导航栏
+         * (可以在style[R.style.TransparentStatusBarDialogTheme]中设置systemBar颜色)
          */
         Transparent,
 
         /**
          * 半透明状态栏和默认导航栏
+         * (可以在style[R.style.TranslucentStatusBarDialogTheme]中设置systemBar颜色)
          */
         TransLucent,
 
         /**
-         * 全透明状态栏和导航栏，内容区域也是全屏
-         * 全透明会造成icon图标在白色背景下变得不可见，可以重写[isLightNavigationBar] [isLightStatusBar]，但是底版本不支持
+         * 全透明状态栏和导航栏，内容区域全屏
+         * (这个style一般用作dialog，提供一个全屏的区域，在区域内部绘制dialog ui，同时通过复写[dimAmount]来
+         * 改变灰色背景(默认是无灰色背景的))
          */
         PureDialog
     }
@@ -61,10 +63,19 @@ abstract class BaseDialogFragment : DialogFragment() {
     @SuppressLint("WrongConstant")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (styleType() == Style.Transparent) {
-            setStyle(STYLE_NO_TITLE, R.style.FloatingDialogTheme)
-        } else {
-            setStyle(STYLE_NO_TITLE, 0)
+        when {
+            styleType() == Style.Transparent -> {
+                setStyle(STYLE_NO_TITLE, R.style.TransparentStatusBarDialogTheme)
+            }
+            styleType() == Style.TransLucent -> {
+                setStyle(STYLE_NO_TITLE, R.style.TranslucentStatusBarDialogTheme)
+            }
+            styleType() == Style.PureDialog -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    setStyle(STYLE_NO_TITLE, R.style.TransparentSystemBarDialogTheme)
+                }
+            }
+            else -> setStyle(STYLE_NO_TITLE, R.style.DialogThemeDefault)
         }
     }
 
@@ -132,10 +143,6 @@ abstract class BaseDialogFragment : DialogFragment() {
     private fun translucentStyle(window: Window) {
         window.apply {
             cutoutCompat(this)
-            this.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
-            if (isLightStatusBar()) {
-                lightStatusBarCompat(this)
-            }
             this.decorView.systemUiVisibility = (this.decorView.systemUiVisibility
                     or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
         }
@@ -145,7 +152,6 @@ abstract class BaseDialogFragment : DialogFragment() {
         window.apply {
             this.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
             this.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-            this.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
             cutoutCompat(this)
             if (isLightStatusBar()) {
                 lightStatusBarCompat(this)
@@ -156,6 +162,7 @@ abstract class BaseDialogFragment : DialogFragment() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 window.setDecorFitsSystemWindows(false)
             } else {
+                this.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
                 this.decorView.systemUiVisibility = (this.decorView.systemUiVisibility
                         or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
             }
@@ -165,7 +172,6 @@ abstract class BaseDialogFragment : DialogFragment() {
     private fun lightStatusBarCompat(window: Window) {
         window.apply {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                window.decorView.windowInsetsController?.show(WindowInsets.Type.statusBars())
                 window.decorView.windowInsetsController?.setSystemBarsAppearance(
                     WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
                     WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
@@ -182,7 +188,6 @@ abstract class BaseDialogFragment : DialogFragment() {
     private fun lightNavigationBarCompat(window: Window) {
         window.apply {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                window.decorView.windowInsetsController?.show(WindowInsets.Type.statusBars())
                 window.decorView.windowInsetsController?.setSystemBarsAppearance(
                     WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
                     WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
