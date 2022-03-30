@@ -2,7 +2,7 @@ package com.simple.commonutils
 
 import android.util.Log
 
-fun Any?.log(tag: Any?, msg: Any?) {
+fun Any?.log(tag: Any?, msg: Any? = null) {
     if (BuildConfig.DEBUG) {
         val clazzTag = if (this == null) {
             "null."
@@ -13,7 +13,7 @@ fun Any?.log(tag: Any?, msg: Any?) {
     }
 }
 
-fun Any?.logE(tag: Any?, msg: Any?) {
+fun Any?.logE(tag: Any?, msg: Any? = null) {
     if (BuildConfig.DEBUG) {
         val clazzTag = if (this == null) {
             "null."
