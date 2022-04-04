@@ -21,7 +21,10 @@ import java.io.InputStream
 import java.util.*
 
 /**
- * 兼容9.0创建文件的方式，不需要配置requestLegacyExternalStorage="true"
+ * 兼容9.0创建文件的方式
+ * 不需要在Manifest中配置requestLegacyExternalStorage="true"
+ * <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+ *
  * 大于等于p(SDK29): MediaStore插入文件不需要权限，但是根据文件类型会限制一些特定的目录，小于p: 需要写入权限
  */
 @Suppress("BlockingMethodInNonBlockingContext")
@@ -57,7 +60,6 @@ object SimpleStorageUtils {
     }
 
     /**
-     *
      * 9.0:
      * MediaStore.Images只能在[DCIM, Pictures]下建立文件
      * Exception: java.lang.IllegalArgumentException:

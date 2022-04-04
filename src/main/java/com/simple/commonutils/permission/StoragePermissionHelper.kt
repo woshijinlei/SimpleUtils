@@ -32,7 +32,7 @@ object StoragePermissionHelper {
      * 权限要求: 在大于等于api29的机器上，我们不需要写入权限，只需声明读取权限即可，小于api29，还是都需要的
      * 存储范围: api29除了私有目录，只能通过MediaStore提供的api存储在外部分享目录(注意外部公有目录存储我们是没有权限的)
      * 注意说明: 1.从api29范围存储出现就开始适配，并没有设置requestLegacyExternalStorage=true，
-     *         2.另外如果我们仅仅是插入公有媒体文件到MediaStore中，api29我们不需要任何声明，自动具有写入权限
+     *          2.另外如果我们仅仅是插入公有媒体文件到MediaStore中，api29我们不需要任何声明，自动具有写入权限
      */
     fun requestScopeStoragePermission(
         activity: FragmentActivity,
@@ -90,7 +90,7 @@ object StoragePermissionHelper {
      *
      * 1.小于等于api29(Q)，设置requestLegacyExternalStorage=true，保持和之前一样声明和请求读写权限
      * 2.大于等于api30(R)，声明MANAGE_EXTERNAL_STORAGE权限，但是我们还想访问MediaStore的API，
-     *   是否还需要声明读权限(这个地方没有真机测试，模拟器是不需要READ_EXTERNAL_STORAGE) todo
+     *   是否还需要声明读权限(这个地方没有真机测试，模拟器是不需要READ_EXTERNAL_STORAGE)
      */
     fun requestExternalStoragePermission(
         activity: FragmentActivity,
