@@ -9,7 +9,7 @@ fun Any?.log(tag: Any?, msg: Any? = null) {
         } else {
             this::class.java.simpleName + "."
         }
-        Log.d("woshijinlei", "${clazzTag}${tag}.$msg")
+        Log.d("woshijinlei", "${clazzTag}${tag}:$msg")
     }
 }
 
@@ -20,6 +20,6 @@ fun Any?.logE(tag: Any?, msg: Any? = null) {
         } else {
             this::class.java.simpleName + "."
         }
-        Log.e("woshijinlei", "${clazzTag}${tag}.$msg")
+        Log.e("woshijinlei", "${clazzTag}${tag}:$msg")
     }
 }

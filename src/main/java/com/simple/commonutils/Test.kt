@@ -10,6 +10,7 @@ import android.widget.TextView
 import androidx.core.view.setPadding
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.simple.commonutils.systemUI.SystemUIHelper
 
 fun Window.addHorizontalContentView(vararg triple: Triple) {
     addHorizontalContentView(triple.toMutableList())
@@ -18,8 +19,18 @@ fun Window.addHorizontalContentView(vararg triple: Triple) {
 fun Window.addHorizontalContentView(
     configs: MutableList<Triple>
 ) {
-    val content: ViewGroup? = this.decorView.findViewById<FrameLayout>(android.R.id.content)
-        ?: return
+    val content: ViewGroup = FrameLayout(this.context).apply {
+        (this@addHorizontalContentView.decorView as FrameLayout)
+            .addView(
+                this,
+                FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    this.gravity = Gravity.BOTTOM
+                    this.bottomMargin = (resources.displayMetrics.scaledDensity * 50).toInt()
+                })
+    }
     val recyclerView = RecyclerView(context).apply {
         this.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
         this.setHasFixedSize(true)
@@ -57,7 +68,7 @@ fun Window.addHorizontalContentView(
 
         }
     }
-    content?.addView(
+    content.addView(
         recyclerView,
         FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT,
@@ -75,8 +86,7 @@ fun Window.addVerticalContentView(
     configs: MutableList<Triple>,
     isBottomHalf: Boolean = true
 ) {
-    val content: ViewGroup? = this.decorView.findViewById<FrameLayout>(android.R.id.content)
-        ?: return
+    val content: ViewGroup = this.decorView as? FrameLayout ?: return
     val recyclerView = RecyclerView(context).apply {
         this.layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
         this.setHasFixedSize(true)
@@ -113,7 +123,7 @@ fun Window.addVerticalContentView(
 
         }
     }
-    content?.addView(
+    content.addView(
         recyclerView,
         FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT,
@@ -123,7 +133,15 @@ fun Window.addVerticalContentView(
                 FrameLayout.LayoutParams.MATCH_PARENT
             },
             Gravity.BOTTOM
-        )
+        ).apply {
+            this.bottomMargin = context.resources.getDimensionPixelSize(
+                context.resources.getIdentifier(
+                    "status_bar_height",
+                    "dimen",
+                    "android"
+                )
+            ) * 2
+        }
     )
 }
 
