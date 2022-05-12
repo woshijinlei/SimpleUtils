@@ -9,12 +9,4 @@
         <item name="android:windowAnimationStyle">@style/AnimationWindowRight</item>
     </style>
 
-    <style name="CommonSplash" parent="Theme.AppCompat.Light.NoActionBar">
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowBackground">@drawable/splash</item>
-        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="o_mr1">shortEdges
-        </item>
-        <!--<item name="android:windowFullscreen">true</item>-->
-    </style>
 </resources>
