@@ -235,6 +235,6 @@ data class Triple(
 )
 
 private class CusViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-    val seekBar: SeekBar = (view as ViewGroup).get(0) as SeekBar
-    val text: TextView = (view as ViewGroup).get(1) as TextView
+    val seekBar: SeekBar = (view as ViewGroup)[0] as SeekBar
+    val text: TextView = (view as ViewGroup)[1] as TextView
 }
