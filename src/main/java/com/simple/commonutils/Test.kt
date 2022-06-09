@@ -40,17 +40,9 @@ fun Window.addHorizontalContentView(
             ): RecyclerView.ViewHolder {
                 return CusViewHolder(
                     LinearLayout(context).apply {
-                        this.layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT
-                        )
                         this.orientation = LinearLayout.VERTICAL
                         this.addView(
-                            SeekBar(context).apply { this.visibility = View.GONE },
-                            LinearLayout.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.WRAP_CONTENT
-                            )
+                            SeekBar(context).apply { this.visibility = View.GONE }
                         )
                         this.addView(
                             Button(context).apply {
@@ -61,7 +53,7 @@ fun Window.addHorizontalContentView(
                                 this.setPadding(24)
                             },
                             LinearLayout.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.WRAP_CONTENT,
                                 ViewGroup.LayoutParams.WRAP_CONTENT
                             )
                         )
@@ -77,26 +69,10 @@ fun Window.addHorizontalContentView(
             override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
                 holder as CusViewHolder
                 configs[position].let { triple ->
-                    holder.itemView.setOnClickListener {
+                    holder.text.setOnClickListener {
                         triple.second?.invoke(Unit)
                     }
                     holder.text.text = triple.first
-                    holder.seekBar.setOnSeekBarChangeListener(object :
-                        SeekBar.OnSeekBarChangeListener {
-                        override fun onProgressChanged(
-                            seekBar: SeekBar?,
-                            progress: Int,
-                            fromUser: Boolean
-                        ) {
-                            triple.third?.invoke(progress / 100f, triple.any)
-                        }
-
-                        override fun onStartTrackingTouch(seekBar: SeekBar?) {
-                        }
-
-                        override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                        }
-                    })
                 }
             }
 
@@ -141,7 +117,7 @@ fun Window.addVerticalContentView(
                         this.orientation = LinearLayout.VERTICAL
                         this.addView(
                             SeekBar(context).apply {
-                                this.setPadding(24, 16, 24, 0)
+                                this.setPadding(32, 16, 32, 8)
                             },
                             LinearLayout.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
