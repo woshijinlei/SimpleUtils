@@ -154,7 +154,6 @@ fun Window.addVerticalContentView(
                     holder.text.text = triple.first
                     holder.seekBar.isVisible = triple.third != null
                     holder.seekBar.progress = triple.progress
-                    log("progress", triple.progress)
                     holder.seekBar.setOnSeekBarChangeListener(object :
                         SeekBar.OnSeekBarChangeListener {
                         override fun onProgressChanged(
@@ -162,7 +161,6 @@ fun Window.addVerticalContentView(
                             progress: Int,
                             fromUser: Boolean
                         ) {
-                            log("progress", progress)
                             if (fromUser) {
                                 triple.progress = progress
                                 triple.third?.invoke(progress / 100f, triple.any)
