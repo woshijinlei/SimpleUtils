@@ -22,7 +22,8 @@ class FragmentIndexViewModel(private val savedStateHandle: SavedStateHandle) : V
 /**
  * 杀死进程的重启，ViewModel实例会改变，但是保存的bundle值依然是系统传递过来的
  *
- * @param fragments 组件重建时，会根据supportFragmentManager管理的fragment替换掉fragments中对应的元素，
+ * @param fragments 组件重建时，fragment实例会创建多个(主要activity的fragment数组和自动创建的fragment)，
+ * 尽量不要采用变量的直接初始化方式，同时会根据supportFragmentManager管理的fragment替换掉fragments中对应的元素，
  * fragments只有一个元素时，也能够支持
  */
 class FragmentSwitcher(
