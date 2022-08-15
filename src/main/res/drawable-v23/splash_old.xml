@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--background-->
+    <item android:gravity="center">
+        <shape>
+            <corners android:radius="0dp" />
+            <solid android:color="@color/splash_background" />
+        </shape>
+    </item>
+    <!--center icon-->
+    <item
+        android:width="288dp"
+        android:height="288dp"
+        android:drawable="@drawable/splash_screen_static_icon"
+        android:gravity="center">
+    </item>
+</layer-list>

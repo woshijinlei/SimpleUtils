@@ -7,6 +7,10 @@ import android.os.Handler
 import android.os.Looper
 import android.view.*
 import androidx.annotation.RequiresApi
+import androidx.core.graphics.Insets
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateMargins
+import androidx.core.view.updatePadding
 import com.simple.commonutils.log
 
 /**
@@ -17,12 +21,193 @@ class SystemUIHelper(private val window: Window) {
     private val handler = Handler(Looper.getMainLooper())
     private val commonDelay = 3000L
 
-    private val TRANSLUCENT = Color.parseColor("#66000000")
+    private val translucent = Color.parseColor("#66000000")
+
+    /**
+     * 这是特殊场景使用，也是使用最多的场景，content为白色的情形，尽可能做到兼容
+     *
+     * 1.statusBar全透明(但是: M以下没有light startBar属性，采用半透明，O以下没有light navBar属性，采用default)
+     * 2.内容区延伸到状态栏
+     */
+    fun transparentStatusBarLightWhiteNavBarR(
+        isLightStatusBar: Boolean = true,
+        navigationBarColor: Int = Color.WHITE,
+        isContentExtendNav: Boolean = false
+    ) {
+        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        cutoutShortEdge()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (isLightStatusBar) {
+                window.decorView.windowInsetsController?.setSystemBarsAppearance(
+                    WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
+                    WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                )
+            }
+            window.decorView.windowInsetsController?.setSystemBarsAppearance(
+                WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
+                WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+            )
+            window.setDecorFitsSystemWindows(false)
+            if (isContentExtendNav) {
+            } else {
+                window.decorView.setOnApplyWindowInsetsListener { _, insets ->
+                    val i = WindowInsetsCompat.toWindowInsetsCompat(insets)
+                    val s = i.getInsets(WindowInsetsCompat.Type.statusBars())
+                    window.decorView.updatePadding(
+                        bottom = insets.getInsets(WindowInsets.Type.navigationBars()).bottom
+                    )
+                    return@setOnApplyWindowInsetsListener WindowInsetsCompat.Builder(i)
+                        .setInsets(
+                            WindowInsetsCompat.Type.statusBars(),
+                            Insets.of(s.left, s.top, s.right, 0)
+                        ).build().toWindowInsets()!!
+                }
+            }
+            window.navigationBarColor = navigationBarColor
+        } else
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                window.decorView.systemUiVisibility = if (isLightStatusBar) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        window.navigationBarColor = navigationBarColor
+                        (View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                                or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR)
+                    } else {
+                        (View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                or View.SYSTEM_UI_FLAG_LAYOUT_STABLE)
+                        // default nav
+                    }
+                } else {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        window.navigationBarColor = navigationBarColor
+                        (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR)
+                    } else {
+                        (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+                        // default nav
+                    }
+                }
+                if (isContentExtendNav) {
+                    window.decorView.systemUiVisibility =
+                        window.decorView.systemUiVisibility or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                }
+                window.statusBarColor = Color.TRANSPARENT
+            } else {
+                window.decorView.systemUiVisibility =
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                if (isContentExtendNav) {
+                    window.decorView.systemUiVisibility =
+                        window.decorView.systemUiVisibility or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                }
+                if (isLightStatusBar) {
+                    window.statusBarColor = translucent
+                } else {
+                    window.statusBarColor = Color.TRANSPARENT
+                }
+                // default nav
+            }
+    }
+
+    /**
+     * R版本依然有效果
+     *
+     * 1.statusBar全透明(M一下没有light属性，如果是light就有半透明代替)
+     * 2.内容区延伸到状态栏
+     */
+    fun transparentStatusBar(
+        isLightStatusBar: Boolean = true,
+        isContentExtendNav: Boolean = false
+    ) {
+        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        cutoutShortEdge()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            window.decorView.systemUiVisibility = if (isLightStatusBar) {
+                (View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                        or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+            } else {
+                (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+            }
+            if (isContentExtendNav) {
+                window.decorView.systemUiVisibility =
+                    window.decorView.systemUiVisibility or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            }
+            window.statusBarColor = Color.TRANSPARENT
+        } else {
+            window.decorView.systemUiVisibility = (
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    )
+            if (isContentExtendNav) {
+                window.decorView.systemUiVisibility =
+                    window.decorView.systemUiVisibility or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            }
+            if (isLightStatusBar) {
+                window.statusBarColor = translucent
+            } else {
+                window.statusBarColor = Color.TRANSPARENT
+            }
+        }
+    }
+
+    /**
+     * statusBar和navbar包括颜色和现实性都保持不变
+     * 全屏显示内容
+     */
+    fun fullContentR() {
+        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        cutoutShortEdge()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(false)
+        } else {
+            window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    or View.SYSTEM_UI_FLAG_FULLSCREEN)
+        }
+    }
+
+    /**
+     * 1.隐藏statusBar和navigationBar
+     * 2.全屏显示内容
+     */
+    fun hideStatusNavigationBarR(isSticky: Boolean = true, stickyDuration: Long = commonDelay) {
+        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        cutoutShortEdge()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            hideStatusNavigationBarApiR(isSticky)
+        } else {
+            hideStatusNavigationByDecorView(isSticky, stickyDuration)
+        }
+    }
 
     /**
      * 1.隐藏statusBar
      * 2.内容延伸到statusBar
-     * 3.下滑statusBar内容区并不是stable，但是保证内容不被遮盖
+     * 3.内容区是stable的，不会跟随statusBar下滑
+     */
+    fun hideStatusBarR(
+        isSticky: Boolean = true,
+        stickyDuration: Long = commonDelay
+    ) {
+        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        cutoutShortEdge()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            hideStatusBarApiR2(isSticky, false, stickyDuration)
+        } else {
+            hideStatusBarByDecorView(isSticky, false, stickyDuration, false)
+        }
+    }
+
+    /**
+     * 1.隐藏statusBar
+     * 2.内容延伸到statusBar
+     * 3.下滑statusBar内容区并不是stable，保证内容不被遮盖
      */
     fun hideStatusBarResizeR(
         isSticky: Boolean = true,
@@ -43,10 +228,13 @@ class SystemUIHelper(private val window: Window) {
     }
 
     /**
+     * R版本依然有效果
+     *
      * 1.隐藏statusBar
      * 2.内容延伸到statusBar
-     * 3.内容区并是stable的，不会跟随statusBar下滑
+     * 3.内容区是stable的，不会跟随statusBar下滑
      */
+    @Deprecated("")
     fun hideStatusBar(
         isSticky: Boolean = true,
         stickyDuration: Long = commonDelay
@@ -57,52 +245,24 @@ class SystemUIHelper(private val window: Window) {
     }
 
     /**
-     * 1.隐藏statusBar和navigationBar
-     * 2.全屏显示内容
-     */
-    fun hideStatusNavigationBarR(isSticky: Boolean = true, stickyDuration: Long = commonDelay) {
-        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-        cutoutShortEdge()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            hideStatusNavigationBarApiR(isSticky)
-        } else {
-            hideStatusNavigationByDecorView(isSticky, stickyDuration)
-        }
-    }
-
-    /**
      * 1.statusBar半透明
      * 2.内容区延伸到状态栏
      */
-    fun translucentStatusBar() {
+    fun translucentStatusBarR() {
         window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-        window.statusBarColor = TRANSLUCENT
-        contentStableExtendStatusBar()
+        window.statusBarColor = translucent
+        contentStableExtendStatusBarR()
     }
 
     /**
-     * 1.statusBar全透明
-     * 2.内容区延伸到状态栏
+     * 1.使statusBar和navigationBar变得完全透明
+     * 2.布局内容全部充满
+     *
+     * 用在启动页是最好的，其他场景不好控制(无法设置状态栏和导航栏颜色)
      */
-    fun transparentStatusBar(isLightStatusBar: Boolean = true) {
-        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-        cutoutShortEdge()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            window.decorView.systemUiVisibility = if (isLightStatusBar) {
-                (View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-                        or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
-            } else {
-                (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
-            }
-        } else {
-            window.decorView.systemUiVisibility = (
-                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    )
-        }
-        window.statusBarColor = Color.TRANSPARENT
+    fun transparentStatusNavigationBar(isHideNavigationBar: Boolean = false) {
+        window.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
+        if (isHideNavigationBar) hideNavigationBar()
     }
 
     /**
@@ -133,18 +293,12 @@ class SystemUIHelper(private val window: Window) {
     }
 
     /**
-     * 1.使statusBar和navigationBar变得完全透明
-     * 2.布局内容全部充满
-     * 用在启动页，其他场景不好控制(无法设置状态栏和导航栏颜色)
-     */
-    fun transparentStatusNavigationBar(isHideNavigationBar: Boolean = false) {
-        window.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
-        if (isHideNavigationBar) hideNavigationBar()
-    }
-
-    /**
-     * 触摸边界，会重新出现状态栏和导航栏，并且会自动显示隐藏（区别： lean模式是点击屏幕）
+     * R版本依然有效果
+     *
+     * 触摸边界，会重新出现状态栏和导航栏，并且会自动显示隐藏（区别: lean模式是点击屏幕）
      * statusBar和navigationBar都为半透明颜色
+     *
+     * 这个的好处是，系统自动控制
      */
     fun immersiveMode() {
         window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
@@ -218,7 +372,7 @@ class SystemUIHelper(private val window: Window) {
     private fun translucentStatusBarByWindowFlag() {
         window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
-        contentStableExtendStatusBar()
+        contentStableExtendStatusBarR()
     }
 
     private fun cutoutShortEdge() {
@@ -229,11 +383,13 @@ class SystemUIHelper(private val window: Window) {
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    private fun hideStatusBarApiR(isSticky: Boolean = true, stickyDuration: Long) {
+    private fun hideStatusBarApiR(
+        isSticky: Boolean = true,
+        stickyDuration: Long
+    ) {
         window.decorView.windowInsetsController?.hide(WindowInsets.Type.statusBars())
         if (isSticky) {
             window.decorView.setOnApplyWindowInsetsListener { _, insets ->
-                log("windowInsets", insets.toString())
                 handler.removeCallbacksAndMessages(null)
                 handler.postDelayed({
                     if (insets.isVisible(WindowInsets.Type.statusBars())) {
@@ -241,6 +397,54 @@ class SystemUIHelper(private val window: Window) {
                     }
                 }, stickyDuration)
                 return@setOnApplyWindowInsetsListener window.decorView.onApplyWindowInsets(insets)
+            }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun hideStatusBarApiR2(
+        isSticky: Boolean = true,
+        resize: Boolean = false,
+        stickyDuration: Long
+    ) {
+        window.decorView.windowInsetsController?.hide(WindowInsets.Type.statusBars())
+        window.setDecorFitsSystemWindows(false)
+        if (isSticky) {
+            window.decorView.setOnApplyWindowInsetsListener { _, insets ->
+                val di = if (resize) {
+                    window.decorView.onApplyWindowInsets(insets)
+                } else {
+                    val i = WindowInsetsCompat.toWindowInsetsCompat(insets)
+                    val s = i.getInsets(WindowInsetsCompat.Type.statusBars())
+                    window.decorView.updatePadding(bottom = insets.getInsets(WindowInsets.Type.navigationBars()).bottom)
+                    WindowInsetsCompat.Builder(i)
+                        .setInsets(
+                            WindowInsetsCompat.Type.statusBars(),
+                            Insets.of(s.left, s.top, s.right, 0)
+                        ).build().toWindowInsets()!! // re dispatch the other's sysw
+                }
+                handler.removeCallbacksAndMessages(null)
+                handler.postDelayed({
+                    if (insets.isVisible(WindowInsets.Type.statusBars())) {
+                        window.decorView.windowInsetsController?.hide(WindowInsets.Type.statusBars())
+                    }
+                }, stickyDuration)
+                return@setOnApplyWindowInsetsListener di
+            }
+        } else {
+            window.decorView.setOnApplyWindowInsetsListener { _, ii ->
+                if (resize) {
+                    return@setOnApplyWindowInsetsListener window.decorView.onApplyWindowInsets(ii)
+                } else {
+                    val i = WindowInsetsCompat.toWindowInsetsCompat(ii)
+                    val s = i.getInsets(WindowInsetsCompat.Type.statusBars())
+                    window.decorView.updatePadding(bottom = ii.getInsets(WindowInsets.Type.navigationBars()).bottom)
+                    return@setOnApplyWindowInsetsListener WindowInsetsCompat.Builder(i)
+                        .setInsets(
+                            WindowInsetsCompat.Type.statusBars(),
+                            Insets.of(s.left, s.top, s.right, 0)
+                        ).build().toWindowInsets()!! // re dispatch the other's sysw
+                }
             }
         }
     }
@@ -267,9 +471,23 @@ class SystemUIHelper(private val window: Window) {
         }
     }
 
-    private fun contentStableExtendStatusBar() {
-        window.decorView.systemUiVisibility =
-            (View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+    private fun contentStableExtendStatusBarR() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(false)
+            window.decorView.setOnApplyWindowInsetsListener { _, insets ->
+                val i = WindowInsetsCompat.toWindowInsetsCompat(insets)
+                val s = i.getInsets(WindowInsetsCompat.Type.statusBars())
+                window.decorView.updatePadding(bottom = insets.getInsets(WindowInsets.Type.navigationBars()).bottom)
+                return@setOnApplyWindowInsetsListener WindowInsetsCompat.Builder(i)
+                    .setInsets(
+                        WindowInsetsCompat.Type.statusBars(),
+                        Insets.of(s.left, s.top, s.right, 0)
+                    ).build().toWindowInsets()!! // re dispatch the other's sysw
+            }
+        } else {
+            window.decorView.systemUiVisibility =
+                (View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+        }
     }
 
     private fun hideStatusNavigationByDecorView(
