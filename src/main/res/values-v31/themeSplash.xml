@@ -10,9 +10,9 @@
         <!--如果不设置会从android:windowBackground中计算得到-->
         <item name="android:windowSplashScreenBackground">@color/splash_background</item>
 
+        <!--1.图片(这个图片的尺寸推荐240dp或者288dp，也可以是其他尺寸比如300dp)的2/3的区域是app icon可显示区域，这个区域设计icon，外围1/3不可见-->
         <!--App icon with an icon background: This should be 240×240 dp, and fit within a circle of 160 dp in diameter.-->
         <!--App icon without an icon background: This should be 288×288 dp, and fit within a circle of 192 dp in diameter.-->
-        <!--1.图片(这个图片的尺寸推荐240dp或者288dp，也可以是其他尺寸比如300dp)的2/3的区域是app icon可显示区域，这个区域设计icon，外围1/3不可见-->
 
         <!--设置windowSplashScreenIconBackgroundColor，按照240-160的尺寸提供-->
         <!--<item name="android:windowSplashScreenIconBackgroundColor">#aa3971</item>-->

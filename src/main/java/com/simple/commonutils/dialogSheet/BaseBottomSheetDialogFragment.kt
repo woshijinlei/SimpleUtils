@@ -3,17 +3,16 @@
 package com.simple.commonutils.dialogSheet
 
 import android.content.Context
-import android.content.DialogInterface
 import android.os.Bundle
-import android.view.View
-import android.view.ViewGroup
-import android.view.WindowManager
+import android.view.*
 import android.widget.FrameLayout
+import androidx.core.view.doOnPreDraw
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.FragmentManager
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.simple.commonutils.R
 
 //onStart-activity
 //onAttach
@@ -29,111 +28,126 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 open class BaseBottomSheetDialogFragment : BottomSheetDialogFragment() {
 
     private var mMarginTop = -1
-    private var mCallback: Callback? = null
+    private var adapter: BottomSheetBehavior.BottomSheetCallback? = null
 
-    interface Callback {
-        fun onSuccess(data: Any?)
-        fun onFailed(data: Any?)
+    interface BottomSheetCallback {
+        fun onStateChanged(
+            who: BottomSheetDialogFragment,
+            bottomSheet: View,
+            @BottomSheetBehavior.State newState: Int
+        )
+
+        fun onSlide(who: BottomSheetDialogFragment, bottomSheet: View, slideOffset: Float)
+    }
+
+    inner class Adapter(private val callback: BottomSheetCallback) :
+        BottomSheetBehavior.BottomSheetCallback() {
+        override fun onStateChanged(bottomSheet: View, newState: Int) {
+            callback.onStateChanged(this@BaseBottomSheetDialogFragment, bottomSheet, newState)
+        }
+
+        override fun onSlide(bottomSheet: View, slideOffset: Float) {
+            callback.onSlide(this@BaseBottomSheetDialogFragment, bottomSheet, slideOffset)
+        }
     }
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        if (context is Callback) {
-            this.mCallback = context
+        if (context is BottomSheetCallback) {
+            adapter = Adapter(context)
         }
         mMarginTop = arguments?.getInt(ExtraMarginTop) ?: -1
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setStyle(DialogFragment.STYLE_NO_TITLE, 0)
+        setStyle(DialogFragment.STYLE_NO_TITLE, R.style.TransparentSystemBarDialogTheme)
     }
 
-    override fun onActivityCreated(savedInstanceState: Bundle?) {
-        super.onActivityCreated(savedInstanceState)
-        dialog?.window?.apply {
-            this.setBackgroundDrawable(null)
-            this.attributes = this.attributes.apply attributes@{
-                this@apply.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
-                this.dimAmount = 0.4f
-            }
-        }
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        isCancelable = canCancel
+
         (dialog as? BottomSheetDialog)?.apply {
             this.behavior.apply {
                 this.state = BottomSheetBehavior.STATE_EXPANDED
                 this.skipCollapsed = true
+                adapter?.let { this.addBottomSheetCallback(it) }
             }
-            this.dismissWithAnimation = false//直接影响点击outside是hide dialog还是dismiss dialog
+            this.dismissWithAnimation = true//直接影响点击outside是hide dialog还是dismiss dialog
         }
-        view?.apply {
-            this.layoutParams = (this.layoutParams as FrameLayout.LayoutParams).apply {
-                this.width = ViewGroup.LayoutParams.MATCH_PARENT
-                if (mMarginTop != -1) {
-                    this.height = resources.displayMetrics.heightPixels - mMarginTop
+        dialog?.window?.apply {
+            this.setBackgroundDrawable(null)
+            this.attributes = this.attributes.apply attributes@{
+                this@apply.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+                this.dimAmount = dim
+            }
+            if (isNoLimits) {
+                this.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
+            }
+            if (windowAnimationStyle != -1) {
+                this.setWindowAnimations(windowAnimationStyle)
+            }
+            if (naviBarColor != -1) {
+                this.navigationBarColor = naviBarColor
+            }
+        }
+        view.apply {
+            doOnPreDraw {
+                this.layoutParams = (this.layoutParams as FrameLayout.LayoutParams).apply {
+                    this.width = ViewGroup.LayoutParams.MATCH_PARENT
+                    this.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                    if (mMarginTop != -1) {
+                        val parentHeight =
+                            dialog?.window?.decorView?.findViewById<View>(com.google.android.material.R.id.coordinator)?.measuredHeight
+                                ?: resources.displayMetrics.heightPixels
+                        this.height = parentHeight - mMarginTop
+                    }
                 }
             }
-            (this.parent as View).background = null
+            (view.parent as View).background = null
         }
-
     }
 
-    /**
-     * 这个方法中调用了dialog.show()方法（包含内在的dialog的onCreate(),onStart(),mWindowManager.addView(mDecor, l),onShow()流程）
-     * 显示decor
-     *
-     * 我们在dialog.show()方法后改变window属性
-     * default:
-     * window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-     * window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-     */
-    override fun onStart() {
-        super.onStart()
-        dialog?.window?.apply {
-            this.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
-            this.clearFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+    fun hide() {
+        (dialog as BottomSheetDialog).apply {
+            this.behavior.apply {
+                this.state = BottomSheetBehavior.STATE_HIDDEN
+            }
         }
     }
 
     /**
-     * 隐藏decor
+     * WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS [naviBarColor]不生效
      */
-    override fun onStop() {
-        super.onStop()
-    }
-
-    /**
-     * remove这个view
-     */
-    override fun onDismiss(dialog: DialogInterface) {
-        super.onDismiss(dialog)
-    }
-
-    /**
-     * 如果可以cancel，发生在dismiss之前执行
-     */
-    override fun onCancel(dialog: DialogInterface) {
-        super.onCancel(dialog)
-    }
-
-    fun sendSuccessMessage(data: Any?) {
-        mCallback?.onSuccess(data)
-    }
-
-    fun sendFailedMessage(data: Any?) {
-        mCallback?.onFailed(data)
-    }
+    open val isNoLimits = false
+    open val naviBarColor = -1
+    open val windowAnimationStyle = -1
+    open val dim = 0f
+    var canCancel: Boolean = true
+        set(value) {
+            field = value
+            this.isCancelable = canCancel
+        }
 
     companion object {
 
         private const val ExtraMarginTop = "BaseBottomSheetDialogFragment:ExtraMarginTop"
 
+        /**
+         * @param marginTop 取0则是铺满高度
+         */
         fun <T : BaseBottomSheetDialogFragment> showDialog(
             dialog: T,
             fragmentManager: FragmentManager,
             marginTop: Int = -1
         ): T {
             return dialog.apply {
-                this.arguments = Bundle().apply {
+                if (this.arguments == null) {
+                    this.arguments = Bundle()
+                }
+                this.arguments?.apply {
                     this.putInt(ExtraMarginTop, marginTop)
                 }
                 show(fragmentManager, "BaseBottomSheetDialogFragment")
