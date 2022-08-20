@@ -55,7 +55,11 @@ object SimpleFileUtils {
         }
     }
 
-    fun createExternalFilesDirFile(context: Context, dirName: String, fileName: String): File {
+    fun createExternalFilesDirFile(
+        context: Context,
+        dirName: String,
+        fileName: String
+    ): File {
         val dir = File(context.getExternalFilesDir(null), dirName)
         if (!dir.exists()) {
             dir.mkdir()

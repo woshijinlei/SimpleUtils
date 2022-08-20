@@ -25,37 +25,31 @@ import com.simple.commonutils.R
 //onStart-activity
 //onResume-activity
 //onResume
-/**
- * 内容区全屏(自定义中间的dialog)，前后台切换动画消除，背景没有dim值，状态栏和导航栏设置
- * 全透明会造成icon图标在白色背景下变得不可见，可以重写[isLightNavigationBar] [isLightStatusBar]，但是底版本不支持
- */
 abstract class BaseDialogFragment : DialogFragment() {
 
     private val handler = Handler(Looper.getMainLooper())
 
+    private val translucent = Color.parseColor("#66000000")
+
     enum class Style {
         /**
          * 默认状态栏和导航栏
-         * (可以在style[R.style.DialogThemeDefault]中设置systemBar颜色)
          */
         Default,
 
         /**
          * 全透明状态栏和默认导航栏
-         * (可以在style[R.style.TransparentStatusBarDialogTheme]中设置systemBar颜色)
          */
         Transparent,
 
         /**
          * 半透明状态栏和默认导航栏
-         * (可以在style[R.style.TranslucentStatusBarDialogTheme]中设置systemBar颜色)
          */
         TransLucent,
 
         /**
          * 全透明状态栏和导航栏，内容区域全屏
-         * (这个style一般用作dialog，提供一个全屏的区域，在区域内部绘制dialog ui，同时通过复写[dimAmount]来
-         * 改变灰色背景(默认是无灰色背景的))
+         * 根布局需要配合android:fitsSystemWindows="true"使用
          */
         PureDialog
     }
@@ -71,24 +65,20 @@ abstract class BaseDialogFragment : DialogFragment() {
                 setStyle(STYLE_NO_TITLE, R.style.TranslucentStatusBarDialogTheme)
             }
             styleType() == Style.PureDialog -> {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    setStyle(STYLE_NO_TITLE, R.style.TransparentSystemBarDialogTheme)
-                }
+                setStyle(STYLE_NO_TITLE, R.style.TransparentSystemBarDialogTheme)
             }
             else -> setStyle(STYLE_NO_TITLE, R.style.DialogThemeDefault)
         }
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+    override fun onGetLayoutInflater(savedInstanceState: Bundle?): LayoutInflater {
+        val layoutInflater = super.onGetLayoutInflater(savedInstanceState)
         dialog?.window?.apply {
             isCancelable = isCancel()
             this.decorView.background = null//去除掉默认的InsertDrawable
             this.decorView.setPadding(0)//边缘点击区域问题
             when (styleType()) {
-                Style.Default -> {
-
-                }
+                Style.Default -> {}
                 Style.Transparent -> {
                     transparentStyle(this)
                 }
@@ -109,6 +99,7 @@ abstract class BaseDialogFragment : DialogFragment() {
             }
             this.setWindowAnimations(customWindowAnimations())
         }
+        return layoutInflater
     }
 
     override fun onResume() {
@@ -116,9 +107,9 @@ abstract class BaseDialogFragment : DialogFragment() {
         handler.post { setWindowAnimation(customWindowAnimations()) }
     }
 
-    override fun onStop() {
+    override fun onPause() {
         clearWindowAnimation()
-        super.onStop()
+        super.onPause()
     }
 
     private fun clearWindowAnimation() {
@@ -131,19 +122,21 @@ abstract class BaseDialogFragment : DialogFragment() {
 
     private fun transparentStyle(window: Window) {
         window.apply {
-            cutoutCompat(this)
-            if (isLightStatusBar()) {
+            cutoutShortEdges(this)
+            if (isLightStatusBar() || (Build.VERSION.SDK_INT < Build.VERSION_CODES.M && isWhiteContent())) {
                 lightStatusBarCompat(this)
             }
             this.decorView.systemUiVisibility = (this.decorView.systemUiVisibility
+                    or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                     or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
         }
     }
 
     private fun translucentStyle(window: Window) {
         window.apply {
-            cutoutCompat(this)
+            cutoutShortEdges(this)
             this.decorView.systemUiVisibility = (this.decorView.systemUiVisibility
+                    or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                     or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
         }
     }
@@ -152,23 +145,38 @@ abstract class BaseDialogFragment : DialogFragment() {
         window.apply {
             this.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
             this.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-            cutoutCompat(this)
-            if (isLightStatusBar()) {
+            cutoutShortEdges(this)
+            if (isLightStatusBar() || (Build.VERSION.SDK_INT < Build.VERSION_CODES.M && isWhiteContent())) {
                 lightStatusBarCompat(this)
             }
-            if (isLightNavigationBar()) {
+            if (isLightNavigationBar() || (Build.VERSION.SDK_INT < Build.VERSION_CODES.O && isWhiteContent())) {
                 lightNavigationBarCompat(this)
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                window.setDecorFitsSystemWindows(false)
+                this.setDecorFitsSystemWindows(false)
             } else {
-                this.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
-                this.decorView.systemUiVisibility = (this.decorView.systemUiVisibility
-                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+                if ((Build.VERSION.SDK_INT < Build.VERSION_CODES.O)) {
+                    this.decorView.systemUiVisibility = (this.decorView.systemUiVisibility
+                            or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+                    if (!isWhiteContent()) {
+                        this.decorView.systemUiVisibility =
+                            this.decorView.systemUiVisibility or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        window.navigationBarColor = Color.TRANSPARENT
+                    }
+                } else {
+                    this.decorView.systemUiVisibility = (this.decorView.systemUiVisibility
+                            or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+                }
             }
         }
     }
 
+    /**
+     * If the SDK_INT is less than M, We set the status bar color translucent.
+     */
     private fun lightStatusBarCompat(window: Window) {
         window.apply {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -180,11 +188,17 @@ abstract class BaseDialogFragment : DialogFragment() {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     window.decorView.systemUiVisibility =
                         window.decorView.systemUiVisibility or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                } else {
+                    // We want to sure that the status bar can visible, So we translucent the status bar
+                    window.statusBarColor = translucent
                 }
             }
         }
     }
 
+    /**
+     * If the SDK_INT is less than O, The navigation bar color is default.
+     */
     private fun lightNavigationBarCompat(window: Window) {
         window.apply {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -196,12 +210,14 @@ abstract class BaseDialogFragment : DialogFragment() {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     this.decorView.systemUiVisibility = (this.decorView.systemUiVisibility
                             or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR)
+                } else {
+                    // default nav color
                 }
             }
         }
     }
 
-    private fun cutoutCompat(window: Window) {
+    private fun cutoutShortEdges(window: Window) {
         window.apply {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 this.attributes.layoutInDisplayCutoutMode =
@@ -210,6 +226,7 @@ abstract class BaseDialogFragment : DialogFragment() {
         }
     }
 
+    open fun isWhiteContent() = false
     open fun isLightNavigationBar() = false
     open fun isLightStatusBar() = false
     open fun dimAmount(): Float = 0f

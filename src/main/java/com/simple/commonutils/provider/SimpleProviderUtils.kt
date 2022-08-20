@@ -9,6 +9,7 @@ import java.io.File
 object SimpleProviderUtils {
 
     /**
+     * @param file 需要配置这路径provide出来
      * @param authority manifest配置的authority
      */
     fun createProviderUri(

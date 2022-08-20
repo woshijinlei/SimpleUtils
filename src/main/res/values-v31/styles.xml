@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <style name="CommonSplash" parent="BaseCommonSplashTheme">
+        <!--如果不设置会从android:windowBackground中计算得到-->
+        <item name="android:windowSplashScreenBackground">@color/common_splash_background</item>
+
+        <!--1.图片(这个图片的尺寸推荐240dp或者288dp，也可以是其他尺寸比如300dp)的2/3的区域是app icon可显示区域，这个区域设计icon，外围1/3不可见-->
+        <!--App icon with an icon background: This should be 240×240 dp, and fit within a circle of 160 dp in diameter.-->
+        <!--App icon without an icon background: This should be 288×288 dp, and fit within a circle of 192 dp in diameter.-->
+
+        <!--设置windowSplashScreenIconBackgroundColor，按照240-160的尺寸提供-->
+        <!--<item name="android:windowSplashScreenIconBackgroundColor">#aa3971</item>-->
+        <!--<item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_screen_static_icon
+        </item>-->
+
+        <!--不设置windowSplashScreenIconBackgroundColor，按照288-192尺寸提供-->
+        <!--<item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_screen_static_icon
+        </item>-->
+
+        <!--2.动画(推荐432dp-288dp，但是发现不是这个尺寸的动画也可以，保证2/3的可见区域，类似图片)-->
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_screen_static_app_icon
+        </item>
+
+        <!--需要设置，否则动画不执行，主要用来Keep the splash screen on-screen for longer periods-->
+        <item name="android:windowSplashScreenAnimationDuration">1000</item>
+
+        <!--<item name="android:windowSplashScreenIconBackgroundColor">@android:color/holo_purple</item>-->
+
+        <!--Branded image: This should be 200×80dp-->
+        <!--若果不提供这个比例的image，效果会变形-->
+        <!--<item name="android:windowSplashScreenBrandingImage">@drawable/splash_screen_brand</item>-->
+    </style>
+</resources>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <style name="BaseCommonSplashTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">#01000000</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+        <!--<item name="android:windowFullscreen">true</item>-->
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="o_mr1">shortEdges
+        </item>
+    </style>
+
+    <style name="CommonSplash" parent="BaseCommonSplashTheme">
+        <item name="android:windowBackground">@drawable/splash_screen_under31</item>
+    </style>
+
+    <style name="BaseBottomAnimationTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowAnimationStyle">@style/AnimationActivityBottom</item>
+    </style>
+
+    <style name="BaseRightAnimationTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowAnimationStyle">@style/AnimationWindowRight</item>
+    </style>
+</resources>

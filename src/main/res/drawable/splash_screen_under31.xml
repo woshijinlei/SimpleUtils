@@ -4,21 +4,13 @@
     <item android:gravity="center">
         <shape>
             <corners android:radius="0dp" />
-            <solid android:color="@color/splash_background" />
+            <solid android:color="@color/common_splash_background" />
         </shape>
-    </item>
-    <!--top icon-->
-    <item
-        android:gravity="center|top"
-        android:top="48dp">
-        <bitmap
-            android:gravity="center|top"
-            android:src="@drawable/splash_text_icon" />
     </item>
     <!--center icon-->
     <item android:gravity="center">
         <bitmap
             android:gravity="center"
-            android:src="@drawable/splash_image_icon" />
+            android:src="@drawable/splash_screen_static_app_icon" />
     </item>
 </layer-list>

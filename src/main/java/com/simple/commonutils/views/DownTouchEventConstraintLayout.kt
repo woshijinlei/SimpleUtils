@@ -12,15 +12,15 @@ class DownTouchEventConstraintLayout @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : ConstraintLayout(context, attrs) {
 
-    fun interface OnTouchEventDispatch {
+    fun interface OnTouchEventCallback {
         fun onDown()
     }
 
-    var onTouchEventDispatch: OnTouchEventDispatch? = null
+    var onTouchEventCallback: OnTouchEventCallback? = null
 
     override fun onInterceptTouchEvent(ev: MotionEvent?): Boolean {
         if (ev?.action == MotionEvent.ACTION_DOWN) {
-            onTouchEventDispatch?.onDown()
+            onTouchEventCallback?.onDown()
         }
         return super.onInterceptTouchEvent(ev)
     }
