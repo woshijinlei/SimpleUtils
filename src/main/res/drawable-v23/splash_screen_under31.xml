@@ -4,14 +4,14 @@
     <item android:gravity="center">
         <shape>
             <corners android:radius="0dp" />
-            <solid android:color="@color/splash_background" />
+            <solid android:color="@color/common_splash_background" />
         </shape>
     </item>
     <!--center icon-->
     <item
         android:width="288dp"
         android:height="288dp"
-        android:drawable="@drawable/splash_screen_static_icon"
+        android:drawable="@drawable/splash_screen_static_app_icon"
         android:gravity="center">
     </item>
 </layer-list>

@@ -37,10 +37,6 @@ class ImageScrollView @JvmOverloads constructor(
         invalidate()
     }
 
-    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-    }
-
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         if (bitmap == null || bitmap!!.isRecycled) return

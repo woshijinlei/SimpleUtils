@@ -1,12 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <style name="shapeCorner" parent="@style/Theme.MaterialComponents">
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <style name="shapeCorner6" parent="@style/Theme.MaterialComponents">
+        <item name="cornerSize">6dp</item>
+    </style>
+
+    <style name="shapeCorner8" parent="@style/Theme.MaterialComponents">
+        <item name="cornerSize">8dp</item>
+    </style>
+
+    <style name="shapeCorner10" parent="@style/Theme.MaterialComponents">
+        <item name="cornerSize">10dp</item>
+    </style>
+
+    <style name="shapeCorner12" parent="@style/Theme.MaterialComponents">
+        <item name="cornerSize">12dp</item>
+    </style>
+
+    <style name="shapeCorner16" parent="@style/Theme.MaterialComponents">
+        <item name="cornerSize">16dp</item>
+    </style>
+
+    <style name="shapeCorner18" parent="@style/Theme.MaterialComponents">
+        <item name="cornerSize">18dp</item>
+    </style>
+
+    <style name="shapeCorner20" parent="@style/Theme.MaterialComponents">
+        <item name="cornerSize">20dp</item>
+    </style>
+
+    <style name="shapeCorner4050" parent="@style/Theme.MaterialComponents">
+        <item name="cornerSizeTopLeft">40dp</item>
+        <item name="cornerSizeTopRight">40dp</item>
+        <item name="cornerSizeBottomRight">50dp</item>
+        <item name="cornerSizeBottomLeft">50dp</item>
+    </style>
+
+    <style name="shapeCornerRight40" parent="@style/Theme.MaterialComponents">
+        <item name="cornerSizeTopRight">50dp</item>
+        <item name="cornerSizeBottomRight">50dp</item>
+    </style>
+
     <style name="shapeTopCorner30" parent="@style/Theme.MaterialComponents">
         <item name="cornerSizeTopLeft">30dp</item>
         <item name="cornerSizeTopRight">30dp</item>
     </style>
 
-    <style name="shapeCorner" parent="@style/Theme.MaterialComponents">
-        <item name="cornerSize">50%</item>
+    <style name="shapeTopCorner12" parent="@style/Theme.MaterialComponents">
+        <item name="cornerSizeTopLeft">12dp</item>
+        <item name="cornerSizeTopRight">12dp</item>
     </style>
 </resources>

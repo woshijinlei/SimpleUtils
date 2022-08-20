@@ -18,41 +18,6 @@ import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.simple.commonutils.log
 
-/**
- *if (globalExoPlayer == null) {
- *       SimpleExoPlayer.createSimplePlayer(
- *           token = thisTokenUri,
- *           context = this,
- *           lifecycleOwner = ProcessLifecycleOwner.get(),
- *          uri = Uri.parse(thisTokenUri),
- *          needBackground = true,
- *       ).apply {
- *          globalExoPlayer = this
- *          this.playWhenReady()
- *       }
- *   } else {
- *       (globalExoPlayer as SimpleExoPlayer).apply {
- *           onReadyLiveData.observe(this@OtherPlayerActivity) {
- *              ToastUtils.showShort("onReadyLiveData: ${thisTokenUri == it.getCurrentPlayToken()}")
- *              if (thisTokenUri == it.getCurrentPlayToken()) {
- *
- *              } else {
- *                  globalExoPlayer?.changeDataSource(
- *                      thisTokenUri,
- *                      Uri.parse(thisTokenUri),
- *                      true
- *                  )
- *              }
- *          }
- *          onCompletedLiveData.observe(this@OtherPlayerActivity) {
- *              ToastUtils.showShort("onCompletedLiveData: ${thisTokenUri == it.getCurrentPlayToken()}")
- *          }
- *          onErrorLiveData.observe(this@OtherPlayerActivity) {
- *              ToastUtils.showShort("onErrorLiveData: ${thisTokenUri == it.getCurrentPlayToken()}")
- *          }
- *      }
- * }
- */
 class SimpleExoPlayer(token: String) : ISimpleMediaPlayer<ExoPlayer> {
 
     private var context: Context? = null

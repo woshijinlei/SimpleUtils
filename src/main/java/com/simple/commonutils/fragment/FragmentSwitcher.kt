@@ -2,6 +2,8 @@ package com.simple.commonutils.fragment
 
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.*
+import com.simple.commonutils.R
+import com.simple.commonutils.logE
 
 class FragmentIndexViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel() {
 
@@ -58,7 +60,10 @@ class FragmentSwitcher(
         switchFragmentByShow(p, fragmentContainer)
     }
 
-    fun switchFragmentByShow(targetPosition: Int, fragmentContainer: Int) {
+    fun switchFragmentByShow(
+        targetPosition: Int, fragmentContainer: Int,
+        useAnima: Boolean = false
+    ) {
         val currentIndex = fragmentIndexViewModel.getFragmentIndex()
         if (fragments.size == 1) {
             val ft = supportFragmentManager.beginTransaction()
@@ -75,17 +80,46 @@ class FragmentSwitcher(
             val ft = supportFragmentManager.beginTransaction()
             val targetFragment = fragments[targetPosition]
             if (currentIndex == -1) {
+                if (useAnima) {
+                    ft.setCustomAnimations(
+                        R.anim.anim_activity_right_open_enter, 0,
+                    )
+                }
                 ft.add(fragmentContainer, targetFragment, "$targetPosition")
             } else {
                 val currentFragment = fragments[currentIndex]
                 if (!targetFragment.isAdded) {
                     if (currentFragment.isAdded) {
+                        if (useAnima) {
+                            ft.setCustomAnimations(
+                                R.anim.anim_activity_right_open_enter,
+                                R.anim.anim_activity_left_open_exit
+                            )
+                        }
                         ft.hide(currentFragment)
-                            .add(fragmentContainer, targetFragment, "$targetPosition")
+                        ft.add(fragmentContainer, targetFragment, "$targetPosition")
                     } else {
+                        if (useAnima) {
+                            ft.setCustomAnimations(0, 0)
+                        }
                         ft.add(fragmentContainer, targetFragment, "$targetPosition")
                     }
                 } else {
+                    if (currentIndex > targetPosition) {
+                        if (useAnima) {
+                            ft.setCustomAnimations(
+                                R.anim.anim_activity_left_close_enter,
+                                R.anim.anim_activity_right_close_exit
+                            )
+                        }
+                    } else {
+                        if (useAnima) {
+                            ft.setCustomAnimations(
+                                R.anim.anim_activity_right_open_enter,
+                                R.anim.anim_activity_left_open_exit
+                            )
+                        }
+                    }
                     if (currentFragment.isAdded) {
                         ft.hide(currentFragment)
                     }

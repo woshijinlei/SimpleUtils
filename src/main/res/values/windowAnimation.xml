@@ -33,4 +33,14 @@
         <item name="android:activityCloseExitAnimation">@anim/anim_activity_right_close_exit</item>
     </style>
 
+    <style name="AnimationDialogBottomLong" parent="android:Animation">
+        <item name="android:windowEnterAnimation">@anim/anim_window_bottom_open_enter_dia_l</item>
+        <item name="android:windowExitAnimation">@anim/anim_window_bottom_close_exit_dialog</item>
+    </style>
+
+    <style name="AnimationDialogBottomShort" parent="android:Animation">
+        <item name="android:windowEnterAnimation">@anim/anim_window_bottom_open_enter_dia_s</item>
+        <item name="android:windowExitAnimation">@anim/anim_window_bottom_close_exit_dialog</item>
+    </style>
+
 </resources>

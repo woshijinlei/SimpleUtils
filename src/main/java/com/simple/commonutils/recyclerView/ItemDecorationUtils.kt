@@ -13,11 +13,11 @@ import androidx.recyclerview.widget.RecyclerView
 import java.lang.IllegalStateException
 
 /**
- * 左侧和右侧item距离边界间距为item之间间距的1/2
+ * 左侧和右侧item距离边界间距为[borderSize],默认为[itemSize]/2
  */
 class LinearItemDecoration(
-    private var borderWith: Int = 0,
-    private var borderExtraWith: Int = 0,
+    private var itemSize: Int = 0,
+    private var borderSize: Int = itemSize / 2,
     private var itemBgColor: Int? = null,
     private var isSurroundItem: Boolean = false
 ) :
@@ -34,7 +34,6 @@ class LinearItemDecoration(
                     color = itemBgColor as Int
                 })
             }
-
         }
     }
 
@@ -44,14 +43,14 @@ class LinearItemDecoration(
         parent: RecyclerView,
         state: RecyclerView.State
     ) {
-        val lm = parent.layoutManager as? LinearLayoutManager
+        val lm = parent.layoutManager as LinearLayoutManager
         when {
-            lm?.orientation == LinearLayoutManager.HORIZONTAL -> setHorizontalOutRect(
+            lm.orientation == LinearLayoutManager.HORIZONTAL -> setHorizontalOutRect(
                 outRect,
                 view,
                 parent
             )
-            lm?.orientation == LinearLayoutManager.VERTICAL -> setVerticalOutRect(
+            lm.orientation == LinearLayoutManager.VERTICAL -> setVerticalOutRect(
                 outRect,
                 view,
                 parent
@@ -65,24 +64,24 @@ class LinearItemDecoration(
         view: View,
         parent: RecyclerView
     ) {
-        var left = borderWith
+        val left: Int
         val right: Int
         val position = parent.getChildAdapterPosition(view)
         when {
             position == 0 -> {
-                left = borderWith + borderExtraWith
-                right = borderWith / 2
+                left = borderSize
+                right = itemSize / 2
             }
             position < parent.adapter!!.itemCount - 1 -> {
-                left = borderWith / 2
-                right = borderWith / 2
+                left = itemSize / 2
+                right = itemSize / 2
             }
             else -> {
-                left = borderWith / 2
-                right = borderWith + borderExtraWith
+                left = itemSize / 2
+                right = borderSize
             }
         }
-        val s = if (isSurroundItem) borderWith else 0
+        val s = if (isSurroundItem) itemSize else 0
         outRect.set(left, s, right, s)
     }
 
@@ -91,24 +90,24 @@ class LinearItemDecoration(
         view: View,
         parent: RecyclerView
     ) {
-        var top = borderWith
+        val top: Int
         val bottom: Int
         val position = parent.getChildAdapterPosition(view)
         when {
             position == 0 -> {
-                top = borderWith + borderExtraWith
-                bottom = borderWith / 2
+                top = borderSize
+                bottom = itemSize / 2
             }
             position < parent.adapter!!.itemCount - 1 -> {
-                top = borderWith / 2
-                bottom = borderWith / 2
+                top = itemSize / 2
+                bottom = itemSize / 2
             }
             else -> {
-                top = borderWith / 2
-                bottom = borderWith + borderExtraWith
+                top = itemSize / 2
+                bottom = borderSize
             }
         }
-        val s = if (isSurroundItem) borderWith else 0
+        val s = if (isSurroundItem) itemSize else 0
         outRect.set(s, top, s, bottom)
     }
 }
@@ -451,7 +450,7 @@ class GridItemDecoration(
 }
 
 /**
- * 左侧和右侧item距离边界0px
+ * 左侧和右侧item距离边界0px(微信)
  * 限制列数2,3,4列情形
  * item之间间距为:
  *   如果是2列，真实间距为borderWith*2（可以实现无整数误差）
@@ -459,7 +458,7 @@ class GridItemDecoration(
  *   如果是4列，真实间距为borderWith*4（可以实现无整数误差）
  */
 class GridItemDecoration234(
-    private val borderWith: Int = 0,
+    private val borderSize: Int = 0,
     private var itemBgColor: Int? = null
 ) : RecyclerView.ItemDecoration() {
 
@@ -502,17 +501,21 @@ class GridItemDecoration234(
         val spanCount = gm.spanCount
         val isSpecialColumnsSmallSize = spanCount == 2 || spanCount == 3 || spanCount == 4
         val top: Float
-        var bottom: Float = borderWith / 2f
+        var bottom: Float = borderSize / 2f
         if (isSpecialColumnsSmallSize) {
-            if (spanCount == 3) {
-                top = borderWith.toFloat()
-                bottom = borderWith.toFloat()
-            } else if (spanCount == 4) {
-                top = borderWith * 1f
-                bottom = borderWith * 2f
-            } else {
-                top = borderWith.toFloat()
-                bottom = 0f
+            when (spanCount) {
+                3 -> {
+                    top = borderSize.toFloat()
+                    bottom = borderSize.toFloat()
+                }
+                4 -> {
+                    top = borderSize * 1f
+                    bottom = borderSize * 2f
+                }
+                else -> {
+                    top = borderSize.toFloat()
+                    bottom = 0f
+                }
             }
         } else {
             throw IllegalStateException("only accept 2,3,4 spanCount")
@@ -520,49 +523,55 @@ class GridItemDecoration234(
         val adapterPosition = parent.getChildAdapterPosition(view)
         val gravity = checkPosition(spanCount, adapterPosition)
         (view.layoutParams as RecyclerView.LayoutParams).apply {
-            if (spanCount == 3) {
-                topMargin = borderWith
-            } else if (spanCount == 4) {
-                topMargin = borderWith
-            } else {
-                topMargin = borderWith
-            }
+            topMargin = borderSize
         }
         when (gravity) {
             Gravity.START -> {
-                if (spanCount == 3) {
-                    left = 0f
-                    right = borderWith * 2f
-                } else if (spanCount == 4) {
-                    left = 0f
-                    right = borderWith * 3f
-                } else {
-                    left = 0f
-                    right = borderWith * 1f
+                when (spanCount) {
+                    3 -> {
+                        left = 0f
+                        right = borderSize * 2f
+                    }
+                    4 -> {
+                        left = 0f
+                        right = borderSize * 3f
+                    }
+                    else -> {
+                        left = 0f
+                        right = borderSize * 1f
+                    }
                 }
             }
             Gravity.END -> {
-                if (spanCount == 3) {
-                    left = borderWith * 2f
-                    right = 0f
-                } else if (spanCount == 4) {
-                    left = borderWith * 3f
-                    right = 0f
-                } else {
-                    left = borderWith * 1f
-                    right = 0f
+                when (spanCount) {
+                    3 -> {
+                        left = borderSize * 2f
+                        right = 0f
+                    }
+                    4 -> {
+                        left = borderSize * 3f
+                        right = 0f
+                    }
+                    else -> {
+                        left = borderSize * 1f
+                        right = 0f
+                    }
                 }
             }
             else -> {
-                if (spanCount == 3) {
-                    left = borderWith.toFloat()
-                    right = borderWith.toFloat()
-                } else if (spanCount == 4) {//0 1 2 3
-                    left = (((adapterPosition) % spanCount) * borderWith).toFloat()
-                    right = 3 * borderWith - left
-                } else {
-                    left = borderWith.toFloat()
-                    right = borderWith.toFloat()
+                when (spanCount) {
+                    3 -> {
+                        left = borderSize.toFloat()
+                        right = borderSize.toFloat()
+                    }
+                    4 -> {//0 1 2 3
+                        left = (((adapterPosition) % spanCount) * borderSize).toFloat()
+                        right = 3 * borderSize - left
+                    }
+                    else -> {
+                        left = borderSize.toFloat()
+                        right = borderSize.toFloat()
+                    }
                 }
             }
         }

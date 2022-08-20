@@ -49,6 +49,7 @@ abstract class BaseDialogFragment : DialogFragment() {
 
         /**
          * 全透明状态栏和导航栏，内容区域全屏
+         * 根布局需要配合android:fitsSystemWindows="true"使用
          */
         PureDialog
     }

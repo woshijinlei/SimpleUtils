@@ -118,6 +118,20 @@ class SystemUIHelper(private val window: Window) {
      * 1.statusBar全透明(M一下没有light属性，如果是light就有半透明代替)
      * 2.内容区延伸到状态栏
      */
+    fun transparentStatusNavigationBar(
+        isLightStatusBar: Boolean = true,
+        isContentExtendNav: Boolean = false
+    ) {
+        transparentStatusBar(isLightStatusBar, isContentExtendNav)
+        window.navigationBarColor = Color.parseColor("#01000000")
+    }
+
+    /**
+     * R版本依然有效果
+     *
+     * 1.statusBar全透明(M一下没有light属性，如果是light就有半透明代替)
+     * 2.内容区延伸到状态栏
+     */
     fun transparentStatusBar(
         isLightStatusBar: Boolean = true,
         isContentExtendNav: Boolean = false
@@ -156,8 +170,8 @@ class SystemUIHelper(private val window: Window) {
     }
 
     /**
-     * statusBar和navbar包括颜色和现实性都保持不变
-     * 全屏显示内容
+     * 1.statusBar和navbar包括颜色和可见性都保持不变
+     * 2.全屏显示内容
      */
     fun fullContentR() {
         window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
@@ -234,7 +248,7 @@ class SystemUIHelper(private val window: Window) {
      * 2.内容延伸到statusBar
      * 3.内容区是stable的，不会跟随statusBar下滑
      */
-    @Deprecated("")
+    @Deprecated("使用hideStatusBarR()")
     fun hideStatusBar(
         isSticky: Boolean = true,
         stickyDuration: Long = commonDelay
@@ -255,12 +269,12 @@ class SystemUIHelper(private val window: Window) {
     }
 
     /**
-     * 1.使statusBar和navigationBar变得完全透明
+     * 1.使statusBar和navigationBar变得完全透明--FLAG_LAYOUT_NO_LIMITS
      * 2.布局内容全部充满
      *
      * 用在启动页是最好的，其他场景不好控制(无法设置状态栏和导航栏颜色)
      */
-    fun transparentStatusNavigationBar(isHideNavigationBar: Boolean = false) {
+    fun transparentStatusNavigationBarNoLimits(isHideNavigationBar: Boolean = false) {
         window.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
         if (isHideNavigationBar) hideNavigationBar()
     }
