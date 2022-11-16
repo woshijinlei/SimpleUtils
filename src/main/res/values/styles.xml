@@ -11,10 +11,6 @@
         </item>
     </style>
 
-    <style name="CommonSplash" parent="BaseCommonSplashTheme">
-        <item name="android:windowBackground">@drawable/splash_screen_under31</item>
-    </style>
-
     <style name="BaseBottomAnimationTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowAnimationStyle">@style/AnimationActivityBottom</item>
     </style>

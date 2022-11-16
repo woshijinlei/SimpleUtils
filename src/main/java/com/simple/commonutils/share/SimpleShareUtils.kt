@@ -12,9 +12,76 @@ import com.simple.commonutils.file.SimpleFileUtils
 import com.simple.commonutils.intent.SimpleIntentFactory
 import com.simple.commonutils.log
 import com.simple.commonutils.provider.SimpleProviderUtils
+import java.io.File
 
 object SimpleShareUtils {
 
+    fun prepareSharePngBitmap(
+        context: Context,
+        bitmap: Bitmap,
+        fileName: String
+    ): Boolean {
+        val file = SimpleFileUtils.createExternalFilesFile(context, fileName)
+        return bitmap.compress(Bitmap.CompressFormat.PNG, 100, file.outputStream())
+    }
+
+    fun prepareShareJpegBitmap(
+        context: Context,
+        bitmap: Bitmap,
+        fileName: String
+    ): Boolean {
+        val file = SimpleFileUtils.createExternalFilesFile(context, fileName)
+        return bitmap.compress(Bitmap.CompressFormat.JPEG, 100, file.outputStream())
+    }
+
+    /**
+     * 在外部Environment.DIRECTORY_PICTURES建立[fileName]文件，并分享出来
+     */
+    fun sharePngBitmap(
+        context: Context,
+        bitmap: Bitmap,
+        fileName: String,
+        needReCompressBitmap: Boolean = true
+    ) {
+        shareIntentByChooser(
+            context,
+            configureShareBitmapIntent(context, bitmap, fileName, true, needReCompressBitmap)
+        )
+    }
+
+    /**
+     * 在外部Environment.DIRECTORY_PICTURES建立[fileName]文件，并分享出来
+     */
+    fun shareJpegBitmap(
+        context: Context,
+        bitmap: Bitmap,
+        fileName: String,
+        needReCompressBitmap: Boolean = true
+    ) {
+        shareIntentByChooser(
+            context,
+            configureShareBitmapIntent(context, bitmap, fileName, false, needReCompressBitmap)
+        )
+    }
+
+    /**
+     * share existing file
+     */
+    fun shareFile(context: Context, file: File) {
+        shareIntentByChooser(
+            context,
+            SimpleIntentFactory.createShareImageIntent(
+                SimpleProviderUtils.createProviderUri(
+                    context,
+                    file
+                )
+            )
+        )
+    }
+
+    /**
+     * share intent
+     */
     fun shareIntentByFilter(context: Context, intent: Intent, packageName: String) {
         try {
             context.startActivity(intent.apply {
@@ -25,48 +92,40 @@ object SimpleShareUtils {
         }
     }
 
+    /**
+     * share intent
+     */
     fun shareIntentByChooser(context: Context, intent: Intent) {
         val c = Intent.createChooser(intent, null)
         context.startActivity(c)
     }
 
-    /**
-     * 在外部Environment.DIRECTORY_PICTURES建立[fileName]文件，并分享出来
-     */
-    fun sharePngBitmap(context: Context, bitmap: Bitmap, fileName: String) {
-        shareIntentByChooser(context, configureShareIntent(context, bitmap, fileName, true))
-    }
-
-    /**
-     * 在外部Environment.DIRECTORY_PICTURES建立[fileName]文件，并分享出来
-     */
-    fun shareJpegBitmap(context: Context, bitmap: Bitmap, fileName: String) {
-        shareIntentByChooser(context, configureShareIntent(context, bitmap, fileName, false))
-    }
-
-    private fun configureShareIntent(
+    private fun configureShareBitmapIntent(
         context: Context,
         bitmap: Bitmap,
         fileName: String,
-        isPng: Boolean
+        isPng: Boolean,
+        needReWrite: Boolean
     ): Intent {
         val file = SimpleFileUtils.createExternalFilesDirFile(
             context,
             Environment.DIRECTORY_PICTURES,
             fileName
         )
-        if (isPng) {
-            bitmap.compress(
-                Bitmap.CompressFormat.PNG,
-                100,
-                file.outputStream()
-            )
-        } else {
-            bitmap.compress(
-                Bitmap.CompressFormat.JPEG,
-                100,
-                file.outputStream()
-            )
+        if (needReWrite) {
+            if (isPng) {
+                bitmap.compress(
+                    Bitmap.CompressFormat.PNG,
+                    100,
+                    file.outputStream()
+                )
+            } else {
+                bitmap.compress(
+                    Bitmap.CompressFormat.JPEG,
+                    100,
+                    file.outputStream()
+                )
+            }
         }
         val uri = SimpleProviderUtils.createProviderUri(context, file)
         return SimpleIntentFactory.createShareImageIntent(uri)

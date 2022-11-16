@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="CornerConstraintLayout">
+        <attr name="shape_background_color" format="color" />
+        <attr name="shape_corner" format="float|dimension" />
+        <attr name="shape_top_left_corner" format="float|dimension" />
+        <attr name="shape_top_right_corner" format="float|dimension" />
+        <attr name="shape_bottom_left_corner" format="float|dimension" />
+        <attr name="shape_bottom_right_corner" format="float|dimension" />
+    </declare-styleable>
+</resources>

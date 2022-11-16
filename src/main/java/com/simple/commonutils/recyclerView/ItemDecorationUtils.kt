@@ -13,11 +13,11 @@ import androidx.recyclerview.widget.RecyclerView
 import java.lang.IllegalStateException
 
 /**
- * 左侧和右侧item距离边界间距为[borderSize],默认为[itemSize]/2
+ * 左侧和右侧item距离边界间距为[borderExtraWidth]
  */
 class LinearItemDecoration(
     private var itemSize: Int = 0,
-    private var borderSize: Int = itemSize / 2,
+    private var borderExtraWidth: Int = 0,
     private var itemBgColor: Int? = null,
     private var isSurroundItem: Boolean = false
 ) :
@@ -69,7 +69,7 @@ class LinearItemDecoration(
         val position = parent.getChildAdapterPosition(view)
         when {
             position == 0 -> {
-                left = borderSize
+                left = borderExtraWidth
                 right = itemSize / 2
             }
             position < parent.adapter!!.itemCount - 1 -> {
@@ -78,7 +78,7 @@ class LinearItemDecoration(
             }
             else -> {
                 left = itemSize / 2
-                right = borderSize
+                right = borderExtraWidth
             }
         }
         val s = if (isSurroundItem) itemSize else 0
@@ -95,7 +95,7 @@ class LinearItemDecoration(
         val position = parent.getChildAdapterPosition(view)
         when {
             position == 0 -> {
-                top = borderSize
+                top = borderExtraWidth
                 bottom = itemSize / 2
             }
             position < parent.adapter!!.itemCount - 1 -> {
@@ -104,7 +104,7 @@ class LinearItemDecoration(
             }
             else -> {
                 top = itemSize / 2
-                bottom = borderSize
+                bottom = borderExtraWidth
             }
         }
         val s = if (isSurroundItem) itemSize else 0

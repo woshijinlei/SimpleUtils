@@ -25,7 +25,7 @@ import com.simple.commonutils.R
 //onStart-activity
 //onResume-activity
 //onResume
-open class BaseBottomSheetDialogFragment : BottomSheetDialogFragment() {
+abstract class BaseBottomSheetDialogFragment : BottomSheetDialogFragment() {
 
     private var mMarginTop = -1
     private var adapter: BottomSheetBehavior.BottomSheetCallback? = null
@@ -61,7 +61,11 @@ open class BaseBottomSheetDialogFragment : BottomSheetDialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setStyle(DialogFragment.STYLE_NO_TITLE, R.style.TransparentSystemBarDialogTheme)
+        if (isWhiteContent()) {
+            setStyle(DialogFragment.STYLE_NO_TITLE, R.style.TransparentSystemBarLightDialogTheme)
+        } else {
+            setStyle(DialogFragment.STYLE_NO_TITLE, R.style.TransparentSystemBarDialogTheme)
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -73,6 +77,7 @@ open class BaseBottomSheetDialogFragment : BottomSheetDialogFragment() {
             this.behavior.apply {
                 this.state = BottomSheetBehavior.STATE_EXPANDED
                 this.skipCollapsed = true
+                this.isDraggable = canDraggable
                 adapter?.let { this.addBottomSheetCallback(it) }
             }
             this.dismissWithAnimation = true//直接影响点击outside是hide dialog还是dismiss dialog
@@ -118,6 +123,8 @@ open class BaseBottomSheetDialogFragment : BottomSheetDialogFragment() {
         }
     }
 
+    abstract fun isWhiteContent(): Boolean
+
     /**
      * WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS [naviBarColor]不生效
      */
@@ -125,6 +132,7 @@ open class BaseBottomSheetDialogFragment : BottomSheetDialogFragment() {
     open val naviBarColor = -1
     open val windowAnimationStyle = -1
     open val dim = 0f
+    open val canDraggable = true
     var canCancel: Boolean = true
         set(value) {
             field = value
