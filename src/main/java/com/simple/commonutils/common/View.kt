@@ -57,3 +57,14 @@ fun View.touchElevation(consume: Boolean = false, duration: Long = 225, translat
 
     this.setTag(true)
 }
+
+inline fun View.doOnDetach2(crossinline action: (view: View) -> Unit) {
+    addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+        override fun onViewAttachedToWindow(view: View) {}
+
+        override fun onViewDetachedFromWindow(view: View) {
+            removeOnAttachStateChangeListener(this)
+            action(view)
+        }
+    })
+}
