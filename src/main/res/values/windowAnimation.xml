@@ -7,6 +7,11 @@
         <item name="android:windowExitAnimation">@anim/anim_window_bottom_close_exit</item>
     </style>
 
+    <style name="AnimationWindowFade" parent="android:Animation">
+        <item name="android:windowEnterAnimation">@anim/anim_window_alpha_enter</item>
+        <item name="android:windowExitAnimation">@anim/anim_window_alpha_exit</item>
+    </style>
+
     <style name="AnimationWindowTop" parent="android:Animation">
         <item name="android:windowEnterAnimation">@anim/anim_translate_top_in</item>
         <item name="android:windowExitAnimation">@anim/anim_translate_top_out</item>

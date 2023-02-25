@@ -8,6 +8,7 @@ interface ISimpleMediaPlayer<T> {
     fun isPlaying(): Boolean
     fun currentPosition(): Long
     fun silent(isSilent: Boolean)
+    fun changeLoop(isLoop: Boolean)
     fun pause()
     fun playWhenReady()
     fun changeDataSource(token: String, config: (T) -> Unit, playWhenReady: Boolean)

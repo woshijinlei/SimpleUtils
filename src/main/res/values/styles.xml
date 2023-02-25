@@ -1,14 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <style name="BaseCommonSplashTheme" parent="Theme.AppCompat.Light.NoActionBar">
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">#01000000</item>
-        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
-        <!--<item name="android:windowFullscreen">true</item>-->
-        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
+    <style name="BaseFullDecorViewTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="o_mr1">shortEdges
         </item>
+    </style>
+
+    <style name="FullDecorViewThemeWhite" parent="BaseFullDecorViewTheme">
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
+    </style>
+
+    <style name="FullDecorViewThemeNotWhite" parent="BaseFullDecorViewTheme">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">#01000000</item>
+        <!--implement custom window or xml background color but not white-->
+        <item name="android:windowBackground">@android:color/holo_purple</item>
     </style>
 
     <style name="BaseBottomAnimationTheme" parent="Theme.AppCompat.Light.NoActionBar">

@@ -3,7 +3,10 @@
     package="com.simple.commonutils">
 
     <application>
-        <activity android:name=".BaseLogActivity"></activity>
+        <activity
+            android:name=".BaseFullDecorViewActivity"
+            android:exported="false" />
+        <activity android:name=".BaseLogActivity" />
 
         <provider
             android:name=".provider.CommonProvider"

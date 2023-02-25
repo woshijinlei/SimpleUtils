@@ -194,6 +194,16 @@ class SimpleExoPlayer(token: String) : ISimpleMediaPlayer<ExoPlayer> {
         }
     }
 
+    override fun changeLoop(isLoop: Boolean) {
+        if (this::mediaPlayer.isInitialized) {
+            if (isLoop) {
+                mediaPlayer.repeatMode = ExoPlayer.REPEAT_MODE_ALL
+            } else {
+                mediaPlayer.repeatMode = ExoPlayer.REPEAT_MODE_OFF
+            }
+        }
+    }
+
     override fun pause() {
         if (this::mediaPlayer.isInitialized && mediaPlayer.isPlaying) {
             cPosition = mediaPlayer.currentPosition
@@ -277,7 +287,7 @@ class SimpleExoPlayer(token: String) : ISimpleMediaPlayer<ExoPlayer> {
                     videoContainer,
                     uri,
                     {
-                        it.repeatMode = ExoPlayer.REPEAT_MODE_ONE
+
                     },
                     needBackground,
                     onBuffering,

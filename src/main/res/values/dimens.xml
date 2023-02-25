@@ -3,4 +3,5 @@
     <integer name="activity_animate_duration400">400</integer>
     <integer name="window_animate_duration600">600</integer>
     <integer name="window_animate_duration350">350</integer>
+    <integer name="window_alpha_animate_duration">150</integer>
 </resources>

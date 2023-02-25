@@ -210,6 +210,10 @@ class SimpleMediaPlayer(token: String) : ISimpleMediaPlayer<MediaPlayer> {
         return mediaPlayer?.isPlaying == true
     }
 
+    override fun changeLoop(isLoop: Boolean) {
+        mediaPlayer?.isLooping = isLoop
+    }
+
     override fun pause() {
         if (mediaPlayer?.isPlaying == true) {
             mediaPlayer?.pause()
@@ -323,7 +327,6 @@ class SimpleMediaPlayer(token: String) : ISimpleMediaPlayer<MediaPlayer> {
                     lifecycleOwner,
                     videoContainer,
                     {
-                        it.isLooping = false
                         it.setDataSource(
                             assetFileDescriptor.fileDescriptor,
                             assetFileDescriptor.startOffset,
@@ -356,7 +359,6 @@ class SimpleMediaPlayer(token: String) : ISimpleMediaPlayer<MediaPlayer> {
                     lifecycleOwner,
                     videoContainer,
                     {
-                        it.isLooping = false
                         it.setDataSource(path)
                     },
                     needBackground,
