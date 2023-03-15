@@ -5,12 +5,13 @@ package com.simple.commonutils.dialog
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.*
+import android.view.LayoutInflater
+import android.view.WindowManager
 import androidx.core.view.setPadding
 
-abstract class BaseDialogFragment : StyleBaseDialogFragment() {
+abstract class FullDecorViewDialogFragment : BaseStyleDialogFragment() {
 
-    private val handler = Handler(Looper.getMainLooper())
+    private val handler by lazy { Handler(Looper.getMainLooper()) }
 
     override fun onGetLayoutInflater(savedInstanceState: Bundle?): LayoutInflater {
         val layoutInflater = super.onGetLayoutInflater(savedInstanceState)
@@ -25,29 +26,45 @@ abstract class BaseDialogFragment : StyleBaseDialogFragment() {
                 this@apply.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
                 this.dimAmount = dimAmount()
             }
-            this.setWindowAnimations(customWindowAnimations())
+            this.decorView.setOnClickListener { }
+            this.setWindowAnimations(windowAnimations())
         }
         return layoutInflater
     }
 
-    override fun onResume() {
-        super.onResume()
-        handler.post { setWindowAnimation(customWindowAnimations()) }
-    }
-
+    /**
+     * fragment
+     */
     override fun onPause() {
-        clearWindowAnimation()
         super.onPause()
-    }
-
-    private fun clearWindowAnimation() {
         dialog?.window?.setWindowAnimations(0)
     }
 
-    private fun setWindowAnimation(windowAnimationStyle: Int) {
-        dialog?.window?.setWindowAnimations(windowAnimationStyle)
+    override fun onResume() {
+        super.onResume()
+        handler.post { dialog?.window?.setWindowAnimations(windowAnimations()) }// work
+    }
+
+    /**
+     * mDialog.hide()->mDecor.setVisibility(View.GONE)
+     */
+    override fun onStop() {
+        super.onStop()
+    }
+
+    /**
+     * mViewDestroyed = false;
+     * mDialog.show();
+     * ->
+     * mDecor.setVisibility(View.VISIBLE)
+     * or
+     * mWindowManager.addView(mDecor, l)
+     */
+    override fun onStart() {
+        super.onStart()
     }
 
     open fun dimAmount(): Float = 0f
-    open fun customWindowAnimations(): Int = android.R.style.Animation_Dialog
+
+    open fun windowAnimations(): Int = 0
 }

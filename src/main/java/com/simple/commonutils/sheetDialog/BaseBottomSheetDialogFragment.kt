@@ -1,6 +1,6 @@
 @file:Suppress("SameParameterValue")
 
-package com.simple.commonutils.dialogSheet
+package com.simple.commonutils.sheetDialog
 
 import android.content.Context
 import android.os.Bundle

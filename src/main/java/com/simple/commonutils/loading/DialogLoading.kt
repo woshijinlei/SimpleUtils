@@ -7,7 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.FragmentManager
 import com.simple.commonutils.R
-import com.simple.commonutils.dialog.BaseDialogFragment
+import com.simple.commonutils.dialog.FullDecorViewDialogFragment
 
 class DialogLoading(
     private val layout: Int,
@@ -36,7 +36,7 @@ class DialogLoading(
         dialogFragment?.hideCallback = hideCallback
     }
 
-    class DialogFragment : BaseDialogFragment() {
+    class DialogFragment : FullDecorViewDialogFragment() {
         private val backPressedCancelable by lazy { arguments?.getBoolean("isCancel") ?: false }
 
         var hideCallback: ((isInner: Boolean) -> Unit)? = null
@@ -50,7 +50,7 @@ class DialogLoading(
             return Style.PureDialog
         }
 
-        override fun customWindowAnimations(): Int {
+        override fun windowAnimations(): Int {
             return R.style.AnimationWindowFade
         }
 

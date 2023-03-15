@@ -26,7 +26,7 @@ import com.simple.commonutils.R
 //onStart-activity
 //onResume-activity
 //onResume
-abstract class StyleBaseDialogFragment : DialogFragment() {
+abstract class BaseStyleDialogFragment : DialogFragment() {
 
     private val translucent = Color.parseColor("#66000000")
 
@@ -72,8 +72,8 @@ abstract class StyleBaseDialogFragment : DialogFragment() {
 
     override fun onGetLayoutInflater(savedInstanceState: Bundle?): LayoutInflater {
         val layoutInflater = super.onGetLayoutInflater(savedInstanceState)
+        this.isCancelable = isCancel()
         dialog?.window?.apply {
-            isCancelable = isCancel()
             when (styleType()) {
                 Style.Default -> {}
                 Style.Transparent -> {

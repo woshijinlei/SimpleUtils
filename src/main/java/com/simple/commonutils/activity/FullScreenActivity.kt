@@ -9,7 +9,7 @@ import androidx.core.view.*
 /**
  * 内容区域为全屏，同时systemBar为全透明状态
  *
- * 这样我们提供的xml布局(setContentView())就是全屏幕状态，同时可以看到内容区域会延伸到systemBar，是否重写
+ * 这样我们提供的xml布局[setContentView]就是全屏幕状态，同时可以看到内容区域会延伸到systemBar，是否重写
  * [topAnchorViews] [bottomAnchorViews]可以以margin的形式适应systemBar，一些嵌套的view比如在fragment内部，
  * 无法直接重写这些属性，只能手动调用[fitSystemWindowMargin] [fitSystemWindowMargins]，其他的属性比如
  * systemBar颜色，是否light，是否隐藏，都可以重写对应的属性，这个前提下调整systemBar，相比在系统默认的模式

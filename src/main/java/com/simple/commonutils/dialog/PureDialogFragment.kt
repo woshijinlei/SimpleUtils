@@ -6,7 +6,7 @@ import android.app.Dialog
 import android.os.Bundle
 import android.view.LayoutInflater
 
-abstract class BaseDialogFragment2 : StyleBaseDialogFragment() {
+abstract class PureDialogFragment : BaseStyleDialogFragment() {
 
     override fun onGetLayoutInflater(savedInstanceState: Bundle?): LayoutInflater {
         val layoutInflater = super.onGetLayoutInflater(savedInstanceState)
