@@ -5,59 +5,65 @@ import android.graphics.Rect
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.doOnLayout
 import androidx.customview.widget.ViewDragHelper
 
 interface IBottomSheetView {
-    /**
-     * It is used for [ViewDragHelper.Callback.tryCaptureView]
-     */
-    var captureView: View?
-
-    /**
-     * [dragLineView] used for compute the click area is a child of [captureView]
-     */
-    var dragLineView: View?
-    var callback: BottomSheetView.Callback?
-    fun show()
-    fun dismiss()
-}
-
-class BottomSheetView @JvmOverloads constructor(
-    context: Context, attrs: AttributeSet? = null
-) : ConstraintLayout(context, attrs), IBottomSheetView {
-
-    private var originTop = -1
-
-    private var offsetY: Int = 0
-
-    private var downX = 0f
-    private var downY = 0f
-
-    override var captureView: View? = null
-
-    override var dragLineView: View? = null
-
-    override var callback: Callback? = null
 
     interface Callback {
         fun onSlide(fraction: Float)
         fun onDismiss()
     }
 
+    /**
+     * It is used for [ViewDragHelper.Callback.tryCaptureView], but we also consider the [dragView] who
+     * is a child to compute the real interaction area.
+     */
+    var captureViewGroup: ViewGroup?
+
+    /**
+     * It is used for [ViewDragHelper.Callback.tryCaptureView], and we use it for computing the
+     * interaction area. The view is a child of [captureViewGroup].
+     */
+    var dragView: View?
+    var callback: Callback?
+
+    fun show()
+
+    fun dismiss()
+}
+
+class BottomSheetView @JvmOverloads constructor(
+    context: Context, attrs: AttributeSet? = null
+) : FrameLayout(context, attrs), IBottomSheetView {
+
+    private var originTop = -1
+
+    private var offsetY: Int = 0
+
+    private var downX = -1f
+    private var downY = -1f
+
+    override var captureViewGroup: ViewGroup? = null
+
+    override var dragView: View? = null
+
+    override var callback: IBottomSheetView.Callback? = null
+
     private val mCallback = object : ViewDragHelper.Callback() {
 
-        //影响smoothSlideViewTo运行时间
         override fun getViewVerticalDragRange(child: View): Int {
             return child.height / 5
         }
 
         override fun tryCaptureView(child: View, pointerId: Int): Boolean {
-            return child == captureView
+            return child == captureViewGroup
                     && child.top >= originTop
-                    && dragLineView!!.areaToParent(this@BottomSheetView)
+                    && dragView!!.areaToParent(this@BottomSheetView)
                 .contains(downX.toInt(), downY.toInt())
         }
 
@@ -65,7 +71,6 @@ class BottomSheetView @JvmOverloads constructor(
             return child.left
         }
 
-        //return The new clamped position for top
         override fun clampViewPositionVertical(child: View, top: Int, dy: Int): Int {
             return top.coerceAtLeast(originTop)
         }
@@ -78,7 +83,7 @@ class BottomSheetView @JvmOverloads constructor(
             dy: Int
         ) {
             offsetY += dy
-            callback?.onSlide(offsetY.toFloat() / captureView!!.height)
+            callback?.onSlide(offsetY.toFloat() / captureViewGroup!!.height)
             if (top == height) {
                 visibility = View.GONE
                 callback?.onDismiss()
@@ -98,7 +103,6 @@ class BottomSheetView @JvmOverloads constructor(
     private val viewDragHelper: ViewDragHelper = ViewDragHelper.create(this, 1f, mCallback)
 
     init {
-        //DrawerLayout配置
         viewDragHelper.apply {
             this.setEdgeTrackingEnabled(ViewDragHelper.EDGE_LEFT)
             this.setEdgeTrackingEnabled(ViewDragHelper.EDGE_BOTTOM)
@@ -113,15 +117,15 @@ class BottomSheetView @JvmOverloads constructor(
         doOnLayout {
             if (offsetY == 0) {
                 offsetY = (height - originTop)
-                captureView!!.offsetTopAndBottom(offsetY)
+                captureViewGroup!!.offsetTopAndBottom(offsetY)
             }
-            viewDragHelper.smoothSlideViewTo(captureView!!, captureView!!.left, originTop)
+            viewDragHelper.smoothSlideViewTo(captureViewGroup!!, captureViewGroup!!.left, originTop)
             invalidate()
         }
     }
 
     override fun dismiss() {
-        viewDragHelper.smoothSlideViewTo(captureView!!, captureView!!.left, height)
+        viewDragHelper.smoothSlideViewTo(captureViewGroup!!, captureViewGroup!!.left, height)
         invalidate()
     }
 
@@ -134,8 +138,8 @@ class BottomSheetView @JvmOverloads constructor(
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
-        originTop = captureView!!.top
-        captureView?.offsetTopAndBottom(offsetY)
+        originTop = captureViewGroup!!.top
+        captureViewGroup?.offsetTopAndBottom(offsetY)
     }
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
@@ -166,8 +170,11 @@ class BottomSheetView @JvmOverloads constructor(
         while (p != targetParentView) {
             l += p.left
             t += p.top
-            p = p.parent as View// ViewRoot will crash, but is ok
+            p = p.parent as View// ViewRoot will crash, but it is ok
         }
-        return Rect(this.left + l, this.top + t, this.left + l + width, this.top + t + height)
+        return Rect(
+            this.left + l, this.top + t,
+            this.left + l + width, this.top + t + height
+        )
     }
 }

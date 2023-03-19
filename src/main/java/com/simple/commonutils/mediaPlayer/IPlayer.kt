@@ -3,6 +3,7 @@ package com.simple.commonutils.mediaPlayer
 import android.net.Uri
 
 interface ISimpleMediaPlayer<T> {
+    var backgroundPlay: Boolean
     fun duration(): Long
     fun isReady(): Boolean
     fun isPlaying(): Boolean
@@ -10,12 +11,12 @@ interface ISimpleMediaPlayer<T> {
     fun silent(isSilent: Boolean)
     fun changeLoop(isLoop: Boolean)
     fun pause()
-    fun playWhenReady()
+    fun playWhenReady(reset: Boolean)
     fun changeDataSource(token: String, config: (T) -> Unit, playWhenReady: Boolean)
     fun changeDataSource(token: String, uri: Uri, playWhenReady: Boolean)
 
     /**
      * token for current play source
      */
-    fun getCurrentPlayToken(): String
+    fun getCurrentPlayToken(): String?
 }

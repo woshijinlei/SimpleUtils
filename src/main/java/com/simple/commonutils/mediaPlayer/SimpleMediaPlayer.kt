@@ -11,44 +11,49 @@ import android.view.Surface
 import android.view.TextureView
 import android.view.ViewGroup
 import androidx.lifecycle.*
-import java.lang.IllegalArgumentException
 
-class SimpleMediaPlayer(token: String) : ISimpleMediaPlayer<MediaPlayer> {
+class SimpleMediaPlayer : ISimpleMediaPlayer<MediaPlayer> {
 
     private var textureView: TextureVideoView? = null
     private var mediaPlayer: MediaPlayer? = null
     private var isPrepared = false
     private var playWhenReady = false
-    private var token: String = token
+    private var token: String? = null
 
-    val onReadyLiveData = MutableLiveData<SimpleMediaPlayer>()// for global
+    val onReadyLiveData = MutableLiveData<SimpleMediaPlayer>()
+    val onErrorLiveData = MutableLiveData<SimpleMediaPlayer>()
+    val onCompletedLiveData = MutableLiveData<SimpleMediaPlayer>()
 
-    /*
-     * 发生错误时，会触发这个LiveData
-     */
-    val onCompletedLiveData = MutableLiveData<SimpleMediaPlayer>()// for global
+    override var backgroundPlay: Boolean = false
 
-    private fun conceptPlayVideo(
+    private fun configure(
         lifecycleOwner: LifecycleOwner,
+        token: String,
         videoParentContainer: ViewGroup? = null,
         mediaPlayerConfig: (MediaPlayer) -> Unit,
-        needBackground: Boolean,
         onReady: ((SimpleMediaPlayer) -> Unit)? = null,
-        onCompleted: (() -> Unit)? = null
+        onCompleted: (() -> Unit)? = null,
+        onError: (() -> Unit)? = null,
     ) {
         lifecycleOwner.lifecycle.addObserver(object : LifecycleEventObserver {
             override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
                 runCatch {
                     if (event == Lifecycle.Event.ON_CREATE) {
+                        (this@SimpleMediaPlayer).token = token
                         if (videoParentContainer == null) {
-                            initViewPlayer(onReady, onCompleted, lifecycleOwner, needBackground)
-                            mediaPlayerConfig.invoke(mediaPlayer!!)
-                            conceptPrepareAsync()
-                        } else {
-                            conceptShowVideo(
+                            initViewPlayer(
                                 onReady,
                                 onCompleted,
-                                needBackground,
+                                onError,
+                                lifecycleOwner
+                            )
+                            mediaPlayerConfig.invoke(mediaPlayer!!)
+                            prepareAsync()
+                        } else {
+                            addVideoView(
+                                onReady,
+                                onCompleted,
+                                onError,
                                 mediaPlayerConfig,
                                 lifecycleOwner,
                                 videoParentContainer
@@ -61,7 +66,7 @@ class SimpleMediaPlayer(token: String) : ISimpleMediaPlayer<MediaPlayer> {
                              * 这个地方比如作为启动视频，就不能暂停
                              * 作为全局播放器，也允许后台播放
                              */
-                            if (!needBackground) {
+                            if (!backgroundPlay) {
                                 mediaPlayer?.pause()
                             }
                         }
@@ -75,7 +80,7 @@ class SimpleMediaPlayer(token: String) : ISimpleMediaPlayer<MediaPlayer> {
                         lifecycleOwner.lifecycle.removeObserver(this)
                         mediaPlayer?.setOnPreparedListener(null)
                         mediaPlayer?.setOnCompletionListener(null)
-                        conceptReleaseMediaPlayer()
+                        releasePlayer()
                     }
                 }
             }
@@ -85,8 +90,8 @@ class SimpleMediaPlayer(token: String) : ISimpleMediaPlayer<MediaPlayer> {
     private fun initViewPlayer(
         onReady: ((SimpleMediaPlayer) -> Unit)?,
         onCompleted: (() -> Unit)?,
-        lifecycleOwner: LifecycleOwner,
-        needBackground: Boolean
+        onError: (() -> Unit)?,
+        lifecycleOwner: LifecycleOwner
     ) {
         if (mediaPlayer != null) {
             mediaPlayer?.release()
@@ -97,17 +102,22 @@ class SimpleMediaPlayer(token: String) : ISimpleMediaPlayer<MediaPlayer> {
             onCompleted?.invoke()
             onCompletedLiveData.postValue(this@SimpleMediaPlayer)
         }
+        mediaPlayer?.setOnErrorListener { mp, what, extra ->
+            onError?.invoke()
+            onErrorLiveData.postValue(this@SimpleMediaPlayer)
+            return@setOnErrorListener false
+        }
         mediaPlayer?.setOnPreparedListener {
             isPrepared = true
             textureView?.setSize(it.videoWidth, it.videoHeight)
             onReady?.invoke(this@SimpleMediaPlayer)
+            onReadyLiveData.postValue(this@SimpleMediaPlayer)
             if (playWhenReady) {
                 playWhenReady = false
-                if (needBackground || lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                if (backgroundPlay || lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
                     it.start()
                 }
             }
-            onReadyLiveData.postValue(this@SimpleMediaPlayer)
         }
     }
 
@@ -119,10 +129,10 @@ class SimpleMediaPlayer(token: String) : ISimpleMediaPlayer<MediaPlayer> {
         }
     }
 
-    private fun conceptShowVideo(
+    private fun addVideoView(
         onReady: ((SimpleMediaPlayer) -> Unit)? = null,
         onCompleted: (() -> Unit)? = null,
-        needBackground: Boolean,
+        onError: (() -> Unit)? = null,
         mediaPlayerConfig: (MediaPlayer) -> Unit,
         lifecycleOwner: LifecycleOwner,
         videoParentContainer: ViewGroup,
@@ -138,16 +148,16 @@ class SimpleMediaPlayer(token: String) : ISimpleMediaPlayer<MediaPlayer> {
                 }
 
                 override fun onSurfaceTextureDestroyed(p0: SurfaceTexture): Boolean {
-                    conceptReleaseMediaPlayer()
+                    releasePlayer()
                     return true
                 }
 
                 override fun onSurfaceTextureAvailable(p0: SurfaceTexture, p1: Int, p2: Int) {
                     p0.also {
-                        initViewPlayer(onReady, onCompleted, lifecycleOwner, needBackground)
+                        initViewPlayer(onReady, onError, onCompleted, lifecycleOwner)
                         mediaPlayerConfig.invoke(mediaPlayer!!)
                         conceptSetSurface(Surface(it))
-                        conceptPrepareAsync()
+                        prepareAsync()
                     }
                 }
             }
@@ -164,7 +174,7 @@ class SimpleMediaPlayer(token: String) : ISimpleMediaPlayer<MediaPlayer> {
         }
     }
 
-    private fun conceptReleaseMediaPlayer() {
+    private fun releasePlayer() {
         try {
             mediaPlayer?.release()
             mediaPlayer = null
@@ -180,7 +190,7 @@ class SimpleMediaPlayer(token: String) : ISimpleMediaPlayer<MediaPlayer> {
         }
     }
 
-    private fun conceptPrepareAsync() {
+    private fun prepareAsync() {
         try {
             mediaPlayer?.prepareAsync()
         } catch (e: Exception) {
@@ -220,7 +230,7 @@ class SimpleMediaPlayer(token: String) : ISimpleMediaPlayer<MediaPlayer> {
         }
     }
 
-    override fun playWhenReady() {
+    override fun playWhenReady(reset: Boolean) {
         if (mediaPlayer == null || !isPrepared) {
             playWhenReady = true
             return
@@ -228,6 +238,7 @@ class SimpleMediaPlayer(token: String) : ISimpleMediaPlayer<MediaPlayer> {
         if (mediaPlayer?.isPlaying == true) {
             return
         }
+        if (reset) mediaPlayer?.seekTo(0)
         mediaPlayer?.start()
     }
 
@@ -243,7 +254,7 @@ class SimpleMediaPlayer(token: String) : ISimpleMediaPlayer<MediaPlayer> {
         mediaPlayer?.reset()
         config.invoke(mediaPlayer!!)
         this.playWhenReady = playWhenReady
-        conceptPrepareAsync()
+        prepareAsync()
     }
 
     override fun getCurrentPlayToken() = token
@@ -310,62 +321,61 @@ class SimpleMediaPlayer(token: String) : ISimpleMediaPlayer<MediaPlayer> {
     companion object {
         /**
          * @param videoContainer：for video
-         * @param needBackground: 后台是否可以播放
-         * 作为全局播放器，就不能设置[onReady] [onCompleted]了，会造成内存泄漏，使用LiveData
          */
         fun createSimplePlayer(
             token: String,
             lifecycleOwner: LifecycleOwner,
             assetFileDescriptor: AssetFileDescriptor,
             videoContainer: ViewGroup? = null,
-            needBackground: Boolean = true,
             onReady: ((SimpleMediaPlayer) -> Unit)? = null,
-            onCompleted: (() -> Unit)? = null
+            onCompleted: (() -> Unit)? = null,
+            onError: (() -> Unit)? = null,
         ): SimpleMediaPlayer {
-            return SimpleMediaPlayer(token).apply {
-                conceptPlayVideo(
-                    lifecycleOwner,
-                    videoContainer,
-                    {
+            return SimpleMediaPlayer().apply {
+                configure(
+                    lifecycleOwner = lifecycleOwner,
+                    token = token,
+                    videoParentContainer = videoContainer,
+                    mediaPlayerConfig = {
                         it.setDataSource(
                             assetFileDescriptor.fileDescriptor,
                             assetFileDescriptor.startOffset,
                             assetFileDescriptor.length
                         )
                     },
-                    needBackground,
-                    onReady,
-                    onCompleted
+                    onReady = onReady,
+                    onCompleted = onCompleted,
+                    onError = onError,
                 )
             }
         }
 
         /**
          * @param videoContainer：for video
-         * @param needBackground: 后台是否可以播放
-         * 作为全局播放器，就不能设置[onReady] [onCompleted]了，会造成内存泄漏，使用LiveData
          */
         fun createSimplePlayer(
             token: String,
             lifecycleOwner: LifecycleOwner,
             path: String,
             videoContainer: ViewGroup? = null,
-            needBackground: Boolean = true,
             onReady: ((SimpleMediaPlayer) -> Unit)? = null,
-            onCompleted: (() -> Unit)? = null
+            onCompleted: (() -> Unit)? = null,
+            onError: (() -> Unit)? = null,
         ): SimpleMediaPlayer {
-            return SimpleMediaPlayer(token).apply {
-                conceptPlayVideo(
-                    lifecycleOwner,
-                    videoContainer,
-                    {
+            return SimpleMediaPlayer().apply {
+                configure(
+                    lifecycleOwner = lifecycleOwner,
+                    token = token,
+                    videoParentContainer = videoContainer,
+                    mediaPlayerConfig = {
                         it.setDataSource(path)
                     },
-                    needBackground,
-                    onReady,
-                    onCompleted
+                    onReady = onReady,
+                    onCompleted = onCompleted,
+                    onError = onError,
                 )
             }
         }
     }
+
 }
