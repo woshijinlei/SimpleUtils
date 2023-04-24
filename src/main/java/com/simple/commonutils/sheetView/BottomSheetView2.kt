@@ -1,35 +1,32 @@
 package com.simple.commonutils.sheetView
 
 import android.content.Context
-import android.graphics.Rect
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
+import androidx.core.view.children
 import androidx.core.view.doOnLayout
 import androidx.customview.widget.ViewDragHelper
 
 /**
- * [content]和[dragView]是父子关系
+ * [content]和[dragView]是平级关系
  */
-class BottomSheetView @JvmOverloads constructor(
+class BottomSheetView2 @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
-) : FrameLayout(context, attrs), IBottomSheetView {
+) : ConstraintLayout(context, attrs), IBottomSheetView {
+
+    private var dragViewOriginTop = -1
+
+    private var offsetY: Int = 0
 
     override lateinit var content: View
 
     override lateinit var dragView: View
 
     override var callback: IBottomSheetView.Callback? = null
-
-    private var dragViewOriginTop = -1
-
-    private var offsetY: Int = 0
-
-    private var downX = -1f
-    private var downY = -1f
 
     private val mCallback = object : ViewDragHelper.Callback() {
 
@@ -38,10 +35,8 @@ class BottomSheetView @JvmOverloads constructor(
         }
 
         override fun tryCaptureView(child: View, pointerId: Int): Boolean {
-            return child == content
+            return child == dragView
                     && child.top >= dragViewOriginTop
-                    && dragView.areaToParent(this@BottomSheetView)
-                .contains(downX.toInt(), downY.toInt())
         }
 
         override fun clampViewPositionHorizontal(child: View, left: Int, dx: Int): Int {
@@ -60,7 +55,8 @@ class BottomSheetView @JvmOverloads constructor(
             dy: Int
         ) {
             offsetY += dy
-            callback?.onSlide(offsetY.toFloat() / content.height)
+            callback?.onSlide(offsetY.toFloat() / height)
+            offsetContent(dy)
             if (top == height) {
                 visibility = View.GONE
                 callback?.onDismiss()
@@ -69,7 +65,10 @@ class BottomSheetView @JvmOverloads constructor(
 
         override fun onViewReleased(releasedChild: View, xvel: Float, yvel: Float) {
             if (yvel > 0) {
-                viewDragHelper.settleCapturedViewAt(releasedChild.left, height)
+                viewDragHelper.settleCapturedViewAt(
+                    releasedChild.left,
+                    height + dragViewOriginTop
+                )
             } else {
                 viewDragHelper.smoothSlideViewTo(
                     releasedChild,
@@ -78,6 +77,18 @@ class BottomSheetView @JvmOverloads constructor(
                 )
             }
             invalidate()
+        }
+    }
+
+    private fun offsetContent(dy: Int, self: View? = null) {
+        self?.offsetTopAndBottom(dy)
+        content.offsetTopAndBottom(dy)
+    }
+
+    private fun offsetOtherSiblings(dy: Int, self: View? = null) {
+        children.forEach {
+            if (it == self) return@forEach
+            it.offsetTopAndBottom(dy)
         }
     }
 
@@ -97,16 +108,20 @@ class BottomSheetView @JvmOverloads constructor(
         visibility = View.VISIBLE
         doOnLayout {
             if (offsetY == 0) {
-                offsetY = (height - dragViewOriginTop)
-                content.offsetTopAndBottom(offsetY)
+                offsetY = (height)
+                offsetContent(offsetY, dragView)
             }
-            viewDragHelper.smoothSlideViewTo(content, content.left, dragViewOriginTop)
+            viewDragHelper.smoothSlideViewTo(
+                dragView,
+                dragView.left,
+                dragViewOriginTop
+            )
             invalidate()
         }
     }
 
     override fun dismiss() {
-        viewDragHelper.smoothSlideViewTo(content, content.left, height)
+        viewDragHelper.smoothSlideViewTo(dragView, dragView.left, height + dragViewOriginTop)
         invalidate()
     }
 
@@ -119,14 +134,12 @@ class BottomSheetView @JvmOverloads constructor(
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
-        dragViewOriginTop = content.top
-        content.offsetTopAndBottom(offsetY)
+        dragViewOriginTop = dragView.top
+        offsetContent(offsetY, dragView)
     }
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
         if (ev.action == MotionEvent.ACTION_DOWN) {
-            downX = ev.x
-            downY = ev.y
             val s = viewDragHelper.continueSettling(false)
             if (s) return true
         }
@@ -142,20 +155,5 @@ class BottomSheetView @JvmOverloads constructor(
         viewDragHelper.processTouchEvent(event)
         super.onTouchEvent(event)
         return true
-    }
-
-    fun View.areaToParent(targetParentView: View = this.parent as View): Rect {
-        var p = parent as View
-        var l = 0
-        var t = 0
-        while (p != targetParentView) {
-            l += p.left
-            t += p.top
-            p = p.parent as View// ViewRoot will crash, but it is ok
-        }
-        return Rect(
-            this.left + l, this.top + t,
-            this.left + l + width, this.top + t + height
-        )
     }
 }
