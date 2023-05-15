@@ -5,7 +5,10 @@ import android.graphics.Color
 import android.net.Uri
 import android.view.ViewGroup
 import android.widget.RelativeLayout
-import androidx.lifecycle.*
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.MutableLiveData
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.PlaybackException
@@ -13,7 +16,7 @@ import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.source.MediaSource
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
-import com.google.android.exoplayer2.ui.PlayerView
+import com.google.android.exoplayer2.ui.StyledPlayerView
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.upstream.cache.Cache
 import com.google.android.exoplayer2.upstream.cache.CacheDataSource
@@ -29,108 +32,117 @@ class SimpleExoPlayer(private val useCache: Boolean = false) :
     private lateinit var mediaPlayer: ExoPlayer
     private var isPrepared = false
     private var pWhenReady = false
+    private var isLoop = false
     private var cPosition = -1L
     private var uri: Uri? = null
     private var token: String? = null
-
-    private val cache by lazy {
-        SimpleCache(File(context!!.cacheDir, "exoplayer-cache"), NoOpCacheEvictor())
-    }
+    private var isSilent = false
 
     val onErrorLiveData = MutableLiveData<SimpleExoPlayer>()
     val onPlaybackState = MutableLiveData<@Player.State Int>()
 
+    override val player: ExoPlayer
+        get() = mediaPlayer
+
     override var backgroundPlay: Boolean = false
 
-    private fun configure(
+    override var isAutoBackgroundForeground: Boolean = false
+
+    fun configure(
         context: Context,
         token: String,
         lifecycleOwner: LifecycleOwner,
+        styledPlayerView: StyledPlayerView? = null,
         videoParentContainer: ViewGroup? = null,
         uri: Uri,
         mediaPlayerConfig: (ExoPlayer) -> Unit,
-        onPlaybackState: (() -> Unit)? = null,
+        onPlaybackState: ((@Player.State Int) -> Unit)? = null,
         onError: (() -> Unit)? = null
     ) {
         lifecycleOwner.lifecycle.addObserver(object : LifecycleEventObserver {
             override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
-                runCatch {
-                    if (event == Lifecycle.Event.ON_CREATE) {
-                        (this@SimpleExoPlayer).context = context
-                        mediaPlayer = ExoPlayer.Builder(context)
-                            .build().apply {
-                                (this@SimpleExoPlayer.token) = token
-                                (this@SimpleExoPlayer).uri = uri
-                                if (useCache) {
-                                    this.setMediaSource(
-                                        buildProgressiveMediaSource(context, uri, cache)
-                                    )
-                                } else {
-                                    this.setMediaSource(
-                                        buildProgressiveMediaSource(context, uri)
-                                    )
-                                }
-                                this.addListener(object : Player.Listener {
-                                    override fun onPlayerError(error: PlaybackException) {
-                                        super.onPlayerError(error)
-                                        onError?.invoke()
-                                        onErrorLiveData.postValue(this@SimpleExoPlayer)
-                                    }
-
-                                    override fun onPlaybackStateChanged(playbackState: Int) {
-                                        log("onPlaybackStateChanged", playbackState)
-                                        onPlaybackState?.invoke()
-                                        this@SimpleExoPlayer.onPlaybackState.postValue(playbackState)
-                                        if (playbackState == Player.STATE_READY) {
-                                            isPrepared = true
-                                            if (pWhenReady) {
-                                                pWhenReady = false
-                                                (this@apply).playWhenReady = backgroundPlay ||
-                                                        lifecycleOwner.lifecycle.currentState.isAtLeast(
-                                                            Lifecycle.State.RESUMED
-                                                        )
-                                            }
-                                        }
-                                        if (playbackState == Player.STATE_ENDED) {
-                                            cPosition = 0L
-                                        }
-                                    }
-                                })
-                                this.repeatMode = ExoPlayer.REPEAT_MODE_OFF
-                                mediaPlayerConfig.invoke(this)
+                log("onStateChanged:onStateChanged:", event)
+                if (event == Lifecycle.Event.ON_CREATE) {
+                    (this@SimpleExoPlayer).context = context
+                    mediaPlayer = ExoPlayer.Builder(context)
+                        .build().apply {
+                            (this@SimpleExoPlayer.token) = token
+                            (this@SimpleExoPlayer).uri = uri
+                            if (useCache) {
+                                this.setMediaSource(
+                                    buildProgressiveMediaSource(context, uri, cache(context))
+                                )
+                            } else {
+                                this.setMediaSource(
+                                    buildProgressiveMediaSource(context, uri)
+                                )
                             }
-                        videoParentContainer?.let { addVideoView(lifecycleOwner as Context, it) }
+                            this.addListener(object : Player.Listener {
+                                override fun onPlayerError(error: PlaybackException) {
+                                    super.onPlayerError(error)
+                                    log("onPlayerError", error)
+                                    onError?.invoke()
+                                    onErrorLiveData.postValue(this@SimpleExoPlayer)
+                                }
+
+                                override fun onPlaybackStateChanged(playbackState: Int) {
+                                    log("onPlaybackStateChanged", playbackState)
+                                    onPlaybackState?.invoke(playbackState)
+                                    this@SimpleExoPlayer.onPlaybackState.postValue(playbackState)
+                                    if (playbackState == Player.STATE_READY) {
+                                        isPrepared = true
+                                        silent(isSilent)
+                                        if (pWhenReady) {
+                                            pWhenReady = false
+                                            (this@apply).playWhenReady = backgroundPlay ||
+                                                    lifecycleOwner.lifecycle.currentState.isAtLeast(
+                                                        Lifecycle.State.RESUMED
+                                                    )
+                                        }
+                                        if (isLoop) {
+                                            mediaPlayer.repeatMode = ExoPlayer.REPEAT_MODE_ALL
+                                        } else {
+                                            mediaPlayer.repeatMode = ExoPlayer.REPEAT_MODE_OFF
+                                        }
+                                    }
+                                    if (playbackState == Player.STATE_ENDED) {
+                                        cPosition = 0L
+                                    }
+                                }
+                            })
+                            this.repeatMode = ExoPlayer.REPEAT_MODE_OFF
+                            mediaPlayerConfig.invoke(this)
+                        }
+                    if (styledPlayerView != null) {
+                        addVideoView(context, styledPlayerView)
+                    } else {
+                        videoParentContainer?.let { addVideoView(context, it) }
                             ?: kotlin.run {
                                 mediaPlayer.prepare()
                             }
                     }
-                    if (event == Lifecycle.Event.ON_PAUSE) {
-                        /*
-                         * 这个地方比如作为启动视频，就不能暂停
-                         * 作为全局播放器，也允许后台播放
-                         */
-                        if (!backgroundPlay) {
-                            pause()
-                        }
+                }
+                if (event == Lifecycle.Event.ON_PAUSE) {
+                    /*
+                     * 这个地方比如作为启动视频，就不能暂停
+                     * 作为全局播放器，也允许后台播放
+                     */
+                    if (isAutoBackgroundForeground || !backgroundPlay) {
+                        pause()
                     }
-                    if (event == Lifecycle.Event.ON_RESUME) {
-                        // start()
+                }
+
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    if (isAutoBackgroundForeground) {
+                        playWhenReady(false)
                     }
-                    if (event == Lifecycle.Event.ON_DESTROY) {
-                        lifecycleOwner.lifecycle.removeObserver(this)
-                        releasePlayer()
-                    }
+                }
+                if (event == Lifecycle.Event.ON_DESTROY) {
+                    lifecycleOwner.lifecycle.removeObserver(this)
+                    releasePlayer()
                 }
             }
         })
-    }
-
-    private fun runCatch(block: () -> Unit) {
-        try {
-            block.invoke()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
     }
 
     private fun addVideoView(
@@ -139,21 +151,27 @@ class SimpleExoPlayer(private val useCache: Boolean = false) :
         isFirstIndex: Boolean = false
     ) {
         try {
-            val textureView = PlayerView(context).apply {
-                this.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                this.useController = false
-                this.setShutterBackgroundColor(Color.WHITE)// shutter color
-            }
-            textureView.player = mediaPlayer
-            mediaPlayer.prepare()
-            val lp = RelativeLayout.LayoutParams(
-                RelativeLayout.LayoutParams.MATCH_PARENT,
-                RelativeLayout.LayoutParams.MATCH_PARENT
-            )
-            if (isFirstIndex) {
-                videoParentContainer.addView(textureView, 0, lp)
+            if (videoParentContainer is StyledPlayerView) {
+                videoParentContainer.player = mediaPlayer
+                videoParentContainer.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                mediaPlayer.prepare()
             } else {
-                videoParentContainer.addView(textureView, lp)
+                val textureView = StyledPlayerView(context).apply {
+                    this.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                    this.useController = false
+                    this.setShutterBackgroundColor(Color.WHITE)// shutter color
+                }
+                textureView.player = mediaPlayer
+                mediaPlayer.prepare()
+                val lp = RelativeLayout.LayoutParams(
+                    RelativeLayout.LayoutParams.MATCH_PARENT,
+                    RelativeLayout.LayoutParams.MATCH_PARENT
+                )
+                if (isFirstIndex) {
+                    videoParentContainer.addView(textureView, 0, lp)
+                } else {
+                    videoParentContainer.addView(textureView, lp)
+                }
             }
         } catch (e: Exception) {
         }
@@ -162,11 +180,15 @@ class SimpleExoPlayer(private val useCache: Boolean = false) :
     private fun releasePlayer() {
         try {
             mediaPlayer.release()
+            // cache.release()
         } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
     override fun silent(isSilent: Boolean) {
+        this.isSilent = isSilent
+        if (!this::mediaPlayer.isInitialized) return
         if (isSilent) {
             mediaPlayer.volume = 0f
         } else {
@@ -203,6 +225,7 @@ class SimpleExoPlayer(private val useCache: Boolean = false) :
     }
 
     override fun changeLoop(isLoop: Boolean) {
+        this.isLoop = isLoop
         if (this::mediaPlayer.isInitialized) {
             if (isLoop) {
                 mediaPlayer.repeatMode = ExoPlayer.REPEAT_MODE_ALL
@@ -272,6 +295,15 @@ class SimpleExoPlayer(private val useCache: Boolean = false) :
     }
 
     companion object {
+        private val _cache: SimpleCache? = null
+
+        @Synchronized
+        fun cache(context: Context): SimpleCache {
+            return _cache ?: SimpleCache(
+                File(context.cacheDir, "exoplayer-cache"),
+                NoOpCacheEvictor()
+            )
+        }
 
         fun buildProgressiveMediaSource(context: Context, uri: Uri): MediaSource {
             return DefaultDataSourceFactory(context, "what").let {
@@ -292,6 +324,7 @@ class SimpleExoPlayer(private val useCache: Boolean = false) :
         }
 
         /**
+         * @param styledPlayerView If provided, the [videoContainer] will be ignored.
          * @param videoContainer：for video
          */
         fun createSimplePlayer(
@@ -299,18 +332,21 @@ class SimpleExoPlayer(private val useCache: Boolean = false) :
             context: Context,
             lifecycleOwner: LifecycleOwner,
             uri: Uri,
+            styledPlayerView: StyledPlayerView? = null,
             videoContainer: ViewGroup? = null,
-            onPlaybackState: (() -> Unit)? = null,
+            onPlaybackState: ((@Player.State Int) -> Unit)? = null,
             onError: (() -> Unit)? = null,
+            useCache: Boolean = false
         ): SimpleExoPlayer {
-            return SimpleExoPlayer( ).apply {
+            return SimpleExoPlayer(useCache).apply {
                 configure(
                     context = context.applicationContext,
-                    token,
+                    token = token,
                     lifecycleOwner = lifecycleOwner,
+                    styledPlayerView = styledPlayerView,
                     videoParentContainer = videoContainer,
                     uri = uri,
-                    mediaPlayerConfig = {},
+                    mediaPlayerConfig = { },
                     onPlaybackState = onPlaybackState,
                     onError = onError
                 )

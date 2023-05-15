@@ -10,9 +10,14 @@ import androidx.core.view.updateLayoutParams
 import com.simple.commonutils.R
 
 @SuppressLint("ClickableViewAccessibility")
-fun View.touchAlpha(consume: Boolean = false, useSlop: Boolean = false, duration: Long = 250) {
+fun View.touchAlpha(
+    consume: Boolean = false,
+    useSlop: Boolean = false,
+    duration: Long = 250,
+    alpha: Float = 0.45f
+) {
     if (this.getTag(R.id.sp_touch_state) == true) return
-    val slop = ViewConfiguration.get(context).scaledTouchSlop
+    val slop = ViewConfiguration.get(context).scaledTouchSlop * 4
     var downX = 0f
     var downY = 0f
     setOnTouchListener { v, event ->
@@ -21,7 +26,7 @@ fun View.touchAlpha(consume: Boolean = false, useSlop: Boolean = false, duration
                 downY = event.y
                 downX = event.x
                 this.animate().cancel()
-                v.alpha = 0.45f
+                v.alpha = alpha
             }
             MotionEvent.ACTION_MOVE -> {
                 if (useSlop && (event.y - downY > slop || event.x - downX > slop)) {

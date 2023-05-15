@@ -5,7 +5,17 @@ import android.animation.ValueAnimator
 import android.view.ViewGroup
 import androidx.core.view.get
 import androidx.core.view.updatePadding
+import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayoutMediator
+
+fun TabLayout.setupViewPager2(viewPager2: ViewPager2, titleProvider: (position: Int) -> String) {
+    TabLayoutMediator(this, viewPager2) { tab, position ->
+        tab.text = titleProvider.invoke(position)
+    }.apply {
+        this.attach()
+    }
+}
 
 /**
  * 需要设置app:tabMinWidth="0dp"，不然会有默认的最小宽度

@@ -5,7 +5,7 @@ import android.view.View
 interface IBottomSheetView {
 
     interface Callback {
-        fun onSlide(fraction: Float)
+        fun onSlide(fraction: Float, isShow: Boolean)
         fun onDismiss()
     }
 
@@ -17,5 +17,5 @@ interface IBottomSheetView {
 
     fun show()
 
-    fun dismiss()
+    fun dismiss(anim: Boolean)
 }

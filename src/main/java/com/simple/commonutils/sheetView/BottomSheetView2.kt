@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewGroup
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.children
@@ -55,9 +54,9 @@ class BottomSheetView2 @JvmOverloads constructor(
             dy: Int
         ) {
             offsetY += dy
-            callback?.onSlide(offsetY.toFloat() / height)
+            callback?.onSlide(offsetY.toFloat() / height, dy < 0)
             offsetContent(dy)
-            if (top == height) {
+            if (top == height + dragViewOriginTop) {
                 visibility = View.GONE
                 callback?.onDismiss()
             }
@@ -120,9 +119,16 @@ class BottomSheetView2 @JvmOverloads constructor(
         }
     }
 
-    override fun dismiss() {
-        viewDragHelper.smoothSlideViewTo(dragView, dragView.left, height + dragViewOriginTop)
-        invalidate()
+    override fun dismiss(anim: Boolean) {
+        if (anim) {
+            viewDragHelper.smoothSlideViewTo(dragView, dragView.left, height + dragViewOriginTop)
+            invalidate()
+        } else {
+            offsetY = height
+            callback?.onSlide(1f, false)
+            callback?.onDismiss()
+            visibility = View.GONE
+        }
     }
 
     override fun computeScroll() {

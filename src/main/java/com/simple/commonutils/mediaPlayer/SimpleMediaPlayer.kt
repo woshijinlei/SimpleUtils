@@ -17,6 +17,8 @@ class SimpleMediaPlayer : ISimpleMediaPlayer<MediaPlayer> {
     private var textureView: TextureVideoView? = null
     private var mediaPlayer: MediaPlayer? = null
     private var isPrepared = false
+    private var isLooping = false
+    private var isSilent = false
     private var playWhenReady = false
     private var token: String? = null
 
@@ -25,6 +27,11 @@ class SimpleMediaPlayer : ISimpleMediaPlayer<MediaPlayer> {
     val onCompletedLiveData = MutableLiveData<SimpleMediaPlayer>()
 
     override var backgroundPlay: Boolean = false
+
+    override val player: MediaPlayer
+        get() = mediaPlayer!!
+
+    override var isAutoBackgroundForeground: Boolean = false
 
     private fun configure(
         lifecycleOwner: LifecycleOwner,
@@ -61,25 +68,24 @@ class SimpleMediaPlayer : ISimpleMediaPlayer<MediaPlayer> {
                         }
                     }
                     if (event == Lifecycle.Event.ON_PAUSE) {
-                        if (mediaPlayer?.isPlaying == true) {
-                            /*
-                             * 这个地方比如作为启动视频，就不能暂停
-                             * 作为全局播放器，也允许后台播放
-                             */
-                            if (!backgroundPlay) {
-                                mediaPlayer?.pause()
-                            }
+                        /*
+                         * 这个地方比如作为启动视频，就不能暂停
+                         * 作为全局播放器，也允许后台播放
+                         */
+                        if (isAutoBackgroundForeground || !backgroundPlay) {
+                            pause()
                         }
                     }
                     if (event == Lifecycle.Event.ON_RESUME) {
-                        if (mediaPlayer?.isPlaying == true) {
-                            // mediaPlayer.start()
+                        if (isAutoBackgroundForeground) {
+                            playWhenReady(false)
                         }
                     }
                     if (event == Lifecycle.Event.ON_DESTROY) {
                         lifecycleOwner.lifecycle.removeObserver(this)
-                        mediaPlayer?.setOnPreparedListener(null)
                         mediaPlayer?.setOnCompletionListener(null)
+                        mediaPlayer?.setOnPreparedListener(null)
+                        mediaPlayer?.setOnErrorListener(null)
                         releasePlayer()
                     }
                 }
@@ -110,12 +116,13 @@ class SimpleMediaPlayer : ISimpleMediaPlayer<MediaPlayer> {
         mediaPlayer?.setOnPreparedListener {
             isPrepared = true
             textureView?.setSize(it.videoWidth, it.videoHeight)
+            silent(isSilent)
             onReady?.invoke(this@SimpleMediaPlayer)
             onReadyLiveData.postValue(this@SimpleMediaPlayer)
             if (playWhenReady) {
                 playWhenReady = false
                 if (backgroundPlay || lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-                    it.start()
+                    playWhenReady(true)
                 }
             }
         }
@@ -183,6 +190,7 @@ class SimpleMediaPlayer : ISimpleMediaPlayer<MediaPlayer> {
     }
 
     override fun silent(isSilent: Boolean) {
+        this.isSilent = isSilent
         if (isSilent) {
             mediaPlayer?.setVolume(0f, 0f)
         } else {
@@ -221,6 +229,7 @@ class SimpleMediaPlayer : ISimpleMediaPlayer<MediaPlayer> {
     }
 
     override fun changeLoop(isLoop: Boolean) {
+        this.isLooping = isLoop
         mediaPlayer?.isLooping = isLoop
     }
 
@@ -240,6 +249,7 @@ class SimpleMediaPlayer : ISimpleMediaPlayer<MediaPlayer> {
         }
         if (reset) mediaPlayer?.seekTo(0)
         mediaPlayer?.start()
+        changeLoop(isLooping)
     }
 
     override fun changeDataSource(

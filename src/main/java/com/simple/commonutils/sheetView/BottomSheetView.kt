@@ -60,7 +60,7 @@ class BottomSheetView @JvmOverloads constructor(
             dy: Int
         ) {
             offsetY += dy
-            callback?.onSlide(offsetY.toFloat() / content.height)
+            callback?.onSlide(offsetY.toFloat() / content.height, dy < 0)
             if (top == height) {
                 visibility = View.GONE
                 callback?.onDismiss()
@@ -105,7 +105,7 @@ class BottomSheetView @JvmOverloads constructor(
         }
     }
 
-    override fun dismiss() {
+    override fun dismiss(anim: Boolean) {
         viewDragHelper.smoothSlideViewTo(content, content.left, height)
         invalidate()
     }

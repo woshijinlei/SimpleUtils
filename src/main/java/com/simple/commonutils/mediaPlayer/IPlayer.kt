@@ -3,7 +3,9 @@ package com.simple.commonutils.mediaPlayer
 import android.net.Uri
 
 interface ISimpleMediaPlayer<T> {
+    val player: T
     var backgroundPlay: Boolean
+    var isAutoBackgroundForeground: Boolean
     fun duration(): Long
     fun isReady(): Boolean
     fun isPlaying(): Boolean
