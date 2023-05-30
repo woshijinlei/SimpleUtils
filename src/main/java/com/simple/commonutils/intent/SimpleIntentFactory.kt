@@ -1,9 +1,16 @@
 package com.simple.commonutils.intent
 
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 
 object SimpleIntentFactory {
+    fun goHomeScreen(activity: Activity) {
+        val startMain = Intent(Intent.ACTION_MAIN)
+        startMain.addCategory(Intent.CATEGORY_HOME)
+        startMain.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        activity.startActivity(startMain)
+    }
 
     fun createPickPhotoIntent(): Intent {
         val photoPickerIntent = Intent(Intent.ACTION_PICK)

@@ -32,3 +32,23 @@ fun TextView.marquee() {
             }
     }
 }
+
+// 系统自带的缩放机制是针对动态文字(但是比如倒计时的时候，文字会忽大忽小)，这个方法是固定文字长度的最大文字尺寸
+fun TextView.setStableMaxTextSize(maxTextSize: Float, stableCharsCount: String = "000000") {
+    val min = 1f
+    if (stableCharsCount.isBlank() || maxTextSize <= min) return
+    var start = min
+    paint.textSize = start
+    val step = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 1f, resources.displayMetrics)
+    doOnPreDraw {
+        while (true) {
+            val s = paint.measureText(stableCharsCount)
+            if (s >= measuredWidth || start >= maxTextSize) {
+                break
+            }
+            start += step
+        }
+        this.setTextSize(TypedValue.COMPLEX_UNIT_PX, start)
+    }
+}
+
