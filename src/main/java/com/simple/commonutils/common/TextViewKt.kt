@@ -4,6 +4,7 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.text.TextUtils
+import android.util.TypedValue
 import android.view.animation.LinearInterpolator
 import android.widget.TextView
 import androidx.core.view.doOnPreDraw
@@ -22,7 +23,7 @@ fun TextView.marquee() {
                 this.duration = 2500
                 this.interpolator = LinearInterpolator()
                 this.addListener(object : AnimatorListenerAdapter() {
-                    override fun onAnimationEnd(animation: Animator?) {
+                    override fun onAnimationEnd(animation: Animator) {
                         super.onAnimationEnd(animation)
                         this@marquee.ellipsize = TextUtils.TruncateAt.END
                     }

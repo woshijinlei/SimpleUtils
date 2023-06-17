@@ -26,6 +26,7 @@ import com.simple.commonutils.R
 //onStart-activity
 //onResume-activity
 //onResume
+@Deprecated("")
 abstract class BaseStyleDialogFragment : DialogFragment() {
 
     private val translucent = Color.parseColor("#66000000")
@@ -60,12 +61,15 @@ abstract class BaseStyleDialogFragment : DialogFragment() {
             styleType() == Style.Transparent -> {
                 setStyle(STYLE_NO_TITLE, R.style.TransparentStatusBarDialogTheme)
             }
+
             styleType() == Style.TransLucent -> {
                 setStyle(STYLE_NO_TITLE, R.style.TranslucentStatusBarDialogTheme)
             }
+
             styleType() == Style.PureDialog -> {
                 setStyle(STYLE_NO_TITLE, R.style.TransparentSystemBarDialogTheme)
             }
+
             else -> setStyle(STYLE_NO_TITLE, R.style.DialogThemeDefault)
         }
     }
@@ -79,9 +83,11 @@ abstract class BaseStyleDialogFragment : DialogFragment() {
                 Style.Transparent -> {
                     transparentStyle(this)
                 }
+
                 Style.TransLucent -> {
                     translucentStyle(this)
                 }
+
                 Style.PureDialog -> {
                     pureDialogStyle(this)
                 }

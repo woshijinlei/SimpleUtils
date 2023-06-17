@@ -2,14 +2,18 @@
 
 package com.simple.commonutils.dialog
 
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.KeyEvent
 import android.view.LayoutInflater
+import android.view.View
+import android.view.Window
 import android.view.WindowManager
 import androidx.core.view.setPadding
 
-abstract class FullDecorViewDialogFragment : BaseStyleDialogFragment() {
+abstract class FullScreenDialogFragment : BaseSystemBarDialogFragment() {
 
     private val handler by lazy { Handler(Looper.getMainLooper()) }
 
@@ -18,6 +22,7 @@ abstract class FullDecorViewDialogFragment : BaseStyleDialogFragment() {
         dialog?.window?.apply {
             this.decorView.background = null//去除掉默认的InsertDrawable
             this.decorView.setPadding(0)//边缘点击区域问题
+            this.setWindowAnimations(0)
             this.setLayout(
                 WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.MATCH_PARENT
@@ -26,24 +31,23 @@ abstract class FullDecorViewDialogFragment : BaseStyleDialogFragment() {
                 this@apply.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
                 this.dimAmount = dimAmount()
             }
-            this.decorView.setOnClickListener { }
-            this.setWindowAnimations(windowAnimations())
+        }
+        dialog?.setOnKeyListener { dialog, keyCode, event ->
+            if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP) {
+                onBlockBackPressed()
+                return@setOnKeyListener true
+            } else {
+                return@setOnKeyListener false
+            }
         }
         return layoutInflater
     }
 
-    /**
-     * fragment
-     */
-    override fun onPause() {
-        super.onPause()
-        dialog?.window?.setWindowAnimations(0)
+    override fun isCancel(): Boolean {
+        return true
     }
 
-    override fun onResume() {
-        super.onResume()
-        handler.post { dialog?.window?.setWindowAnimations(windowAnimations()) }// work
-    }
+    abstract fun onBlockBackPressed()
 
     /**
      * mDialog.hide()->mDecor.setVisibility(View.GONE)
@@ -65,6 +69,4 @@ abstract class FullDecorViewDialogFragment : BaseStyleDialogFragment() {
     }
 
     open fun dimAmount(): Float = 0f
-
-    open fun windowAnimations(): Int = 0
 }

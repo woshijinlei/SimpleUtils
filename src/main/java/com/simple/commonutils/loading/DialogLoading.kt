@@ -7,7 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.FragmentManager
 import com.simple.commonutils.R
-import com.simple.commonutils.dialog.FullDecorViewDialogFragment
+import com.simple.commonutils.dialog.FullScreenDialogFragment
 
 class DialogLoading(
     private val layout: Int,
@@ -36,22 +36,18 @@ class DialogLoading(
         dialogFragment?.hideCallback = hideCallback
     }
 
-    class DialogFragment : FullDecorViewDialogFragment() {
+    class DialogFragment : FullScreenDialogFragment() {
         private val backPressedCancelable by lazy { arguments?.getBoolean("isCancel") ?: false }
 
         var hideCallback: ((isInner: Boolean) -> Unit)? = null
         var isInner = false
 
+        override fun onBlockBackPressed() {
+            dismissAllowingStateLoss()
+        }
+
         override fun isCancel(): Boolean {
             return backPressedCancelable
-        }
-
-        override fun styleType(): Style {
-            return Style.PureDialog
-        }
-
-        override fun windowAnimations(): Int {
-            return R.style.AnimationWindowFade
         }
 
         override fun onDismiss(dialog: DialogInterface) {
