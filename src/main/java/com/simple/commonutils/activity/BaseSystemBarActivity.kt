@@ -1,7 +1,6 @@
 package com.simple.commonutils.activity
 
 import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -9,6 +8,7 @@ import android.view.View
 import android.view.WindowInsetsController
 import android.view.WindowManager
 import androidx.annotation.CallSuper
+import androidx.appcompat.app.AppCompatActivity
 
 /**
  * 默认情况下对system bar不施加任何影响
@@ -47,7 +47,8 @@ abstract class BaseSystemBarActivity : AppCompatActivity() {
         extendContent()
         lightOrDefaultSystemBar()
         colorOrDefaultSystemBar()
-        hideOrShowSystemBar()
+        hideOrShowNavBar(isHideNavBar)
+        hideOrShowStatusBar(isHideStatusBar)
         interceptSystemBarStyle()
         if (isSticky) {
             stickySystemBar(stickyInterval)
@@ -59,9 +60,11 @@ abstract class BaseSystemBarActivity : AppCompatActivity() {
             isContentExtendStatusBar && isContentExtendNavbar -> {
                 contentExtendStatusNav()
             }
+
             isContentExtendStatusBar -> {
                 contentExtendStatus()
             }
+
             isContentExtendNavbar -> {
                 contentExtendNav()
             }
@@ -108,10 +111,22 @@ abstract class BaseSystemBarActivity : AppCompatActivity() {
 
     }
 
-    private fun hideOrShowSystemBar() {
-        window.decorView.systemUiVisibility = (window.decorView.systemUiVisibility
-                or (if (isHideStatusBar) View.SYSTEM_UI_FLAG_FULLSCREEN else 0)
-                or (if (isHideNavBar) View.SYSTEM_UI_FLAG_HIDE_NAVIGATION else 0))
+    protected fun hideOrShowNavBar(isHideNavBar: Boolean) {
+        window.decorView.systemUiVisibility = (
+                if (isHideNavBar) window.decorView.systemUiVisibility or
+                        View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                else window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_HIDE_NAVIGATION.inv())
+        sysVisibility = window.decorView.systemUiVisibility
+    }
+
+    protected fun hideOrShowStatusBar(isHideStatusBar: Boolean) {
+        window.decorView.systemUiVisibility = (
+                if (isHideStatusBar) window.decorView.systemUiVisibility or
+                        View.SYSTEM_UI_FLAG_FULLSCREEN or
+                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                else window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_FULLSCREEN.inv())
+        sysVisibility = window.decorView.systemUiVisibility
     }
 
     private fun stickySystemBar(stickyInterval: Long) {

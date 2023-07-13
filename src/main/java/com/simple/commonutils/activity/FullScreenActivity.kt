@@ -156,7 +156,7 @@ abstract class FullScreenActivity : BaseSystemBarActivity() {
             }
         }
 
-        fun ViewGroup.fitSystemWindowPadding(padding: Int, isAlignTop: Boolean) {
+        fun View.fitSystemWindowPadding(padding: Int, isAlignTop: Boolean) {
             setOnApplyWindowInsetsListener { v, insets ->
                 val i = WindowInsetsCompat.toWindowInsetsCompat(insets)
                 val s = i.getInsets(WindowInsetsCompat.Type.statusBars())
@@ -170,7 +170,7 @@ abstract class FullScreenActivity : BaseSystemBarActivity() {
             }
         }
 
-        fun ViewGroup.fitSystemWindowPaddings(paddingTop: Int, paddingBottom: Int) {
+        fun View.fitSystemWindowPaddings(paddingTop: Int, paddingBottom: Int) {
             setOnApplyWindowInsetsListener { v, insets ->
                 val i = WindowInsetsCompat.toWindowInsetsCompat(insets)
                 val s = i.getInsets(WindowInsetsCompat.Type.statusBars())
