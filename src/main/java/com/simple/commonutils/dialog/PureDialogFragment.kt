@@ -19,11 +19,18 @@ import androidx.fragment.app.DialogFragment
 import com.google.android.material.shape.MaterialShapeDrawable
 import com.google.android.material.shape.ShapeAppearanceModel
 
+/**
+ * [onCreateView]提供的view和普通的dialog一致，实现[simpleDialogConfig]进行调整
+ *
+ * @constructor Create empty Pure dialog fragment
+ */
 abstract class PureDialogFragment : DialogFragment() {
 
     override fun onGetLayoutInflater(savedInstanceState: Bundle?): LayoutInflater {
         val layoutInflater = super.onGetLayoutInflater(savedInstanceState)
         dialog?.apply {
+            window?.decorView?.background = null
+            window?.decorView?.setPadding(0)
             simpleDialogConfig(this)
         }
         return layoutInflater

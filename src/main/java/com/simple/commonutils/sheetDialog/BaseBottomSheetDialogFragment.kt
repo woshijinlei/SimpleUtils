@@ -247,6 +247,12 @@ abstract class BaseBottomSheetDialogFragment : BottomSheetDialogFragment() {
             ?.forEach { it.fitSystemWindowMargin(it.marginBottom, false) }
     }
 
+    var canCancel: Boolean = true
+        set(value) {
+            field = value
+            this.isCancelable = canCancel
+        }
+
     open val isLightStatusBar = false
     open val isLightNavigationBar = false
     open val navigationBarColor: Int? = null
@@ -256,11 +262,6 @@ abstract class BaseBottomSheetDialogFragment : BottomSheetDialogFragment() {
     open val windowAnimationStyle = -1
     open val dim = 0f
     open val canDraggable = true
-    var canCancel: Boolean = true
-        set(value) {
-            field = value
-            this.isCancelable = canCancel
-        }
 
     companion object {
 

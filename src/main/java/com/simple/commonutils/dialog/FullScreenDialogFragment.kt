@@ -2,20 +2,18 @@
 
 package com.simple.commonutils.dialog
 
-import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.KeyEvent
 import android.view.LayoutInflater
-import android.view.View
-import android.view.Window
 import android.view.WindowManager
 import androidx.core.view.setPadding
 
+/**
+ * decorView默认设置为全屏，具体的dialog内容和动画通过child来实现
+ *
+ * @constructor Create empty Full screen dialog fragment
+ */
 abstract class FullScreenDialogFragment : BaseSystemBarDialogFragment() {
-
-    private val handler by lazy { Handler(Looper.getMainLooper()) }
 
     override fun onGetLayoutInflater(savedInstanceState: Bundle?): LayoutInflater {
         val layoutInflater = super.onGetLayoutInflater(savedInstanceState)
