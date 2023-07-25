@@ -44,7 +44,7 @@ abstract class FullScreenActivity : BaseSystemBarActivity() {
 
     override val navBarColor = navTransparentColor
 
-    override val isSticky = true
+    override val isSticky = false
 
     override fun setContentView(view: View?) {
         super.setContentView(view)

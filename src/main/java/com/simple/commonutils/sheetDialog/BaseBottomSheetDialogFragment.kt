@@ -3,6 +3,7 @@
 package com.simple.commonutils.sheetDialog
 
 import android.content.Context
+import android.content.DialogInterface
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
@@ -44,7 +45,7 @@ abstract class BaseBottomSheetDialogFragment : BottomSheetDialogFragment() {
     abstract val bottomAnchorViews: MutableList<View>?
 
     private var mMarginTop = -1
-    private var adapter: BottomSheetBehavior.BottomSheetCallback? = null
+    private var adapter: Adapter? = null
     private val translucent = Color.parseColor("#66000000")
 
     interface BottomSheetCallback {
@@ -55,9 +56,11 @@ abstract class BaseBottomSheetDialogFragment : BottomSheetDialogFragment() {
         )
 
         fun onSlide(who: BottomSheetDialogFragment, bottomSheet: View, slideOffset: Float)
+
+        fun onDismiss(who: BottomSheetDialogFragment)
     }
 
-    inner class Adapter(private val callback: BottomSheetCallback) :
+    inner class Adapter(val callback: BottomSheetCallback) :
         BottomSheetBehavior.BottomSheetCallback() {
         override fun onStateChanged(bottomSheet: View, newState: Int) {
             callback.onStateChanged(this@BaseBottomSheetDialogFragment, bottomSheet, newState)
@@ -226,6 +229,13 @@ abstract class BaseBottomSheetDialogFragment : BottomSheetDialogFragment() {
                     WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
             }
         }
+    }
+    /**
+     * remove这个view
+     */
+    override fun onDismiss(dialog: DialogInterface) {
+        super.onDismiss(dialog)
+        adapter?.callback?.onDismiss(this)
     }
 
     fun hide() {
