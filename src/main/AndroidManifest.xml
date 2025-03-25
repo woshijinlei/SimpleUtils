@@ -3,9 +3,6 @@
     package="com.simple.commonutils">
 
     <application>
-        <activity
-            android:name=".BaseFullDecorViewActivity"
-            android:exported="false" />
         <activity android:name=".BaseLogActivity" />
 
         <provider
