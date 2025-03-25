@@ -187,7 +187,7 @@ class CornerConstraintLayout : ConstraintLayout {
         return floatArray
     }
 
-    override fun onDraw(canvas: Canvas?) {
+    override fun onDraw(canvas: Canvas) {
         val floatArray = configFloatArray()
         if ((floatArray.maxOrNull() ?: 0f) > 0f) {
             canvas?.clipPath(
