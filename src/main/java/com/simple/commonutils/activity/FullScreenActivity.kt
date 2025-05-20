@@ -5,6 +5,7 @@ import android.os.Build
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.*
+import com.simple.commonutils.log
 
 /**
  * 内容区域为全屏，同时systemBar为全透明状态
@@ -128,9 +129,9 @@ abstract class FullScreenActivity : BaseSystemBarActivity() {
         fun View.fitSystemWindowMargin(margin: Int, isAlignTop: Boolean) {
             setOnApplyWindowInsetsListener { v, insets ->
                 val i = WindowInsetsCompat.toWindowInsetsCompat(insets)
-                val s = i.getInsets(WindowInsetsCompat.Type.statusBars())
-                val n = i.getInsets(WindowInsetsCompat.Type.navigationBars())
-                (v?.layoutParams as ViewGroup.MarginLayoutParams).apply {
+                val s = i.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.statusBars())
+                val n = i.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.navigationBars())
+                v.layoutParams = (v.layoutParams as ViewGroup.MarginLayoutParams).apply {
                     if (isAlignTop) {
                         this.updateMarginsRelative(top = s.top + margin)
                     } else {
@@ -144,9 +145,9 @@ abstract class FullScreenActivity : BaseSystemBarActivity() {
         fun View.fitSystemWindowMargins(marginTop: Int, marginBottom: Int) {
             setOnApplyWindowInsetsListener { v, insets ->
                 val i = WindowInsetsCompat.toWindowInsetsCompat(insets)
-                val s = i.getInsets(WindowInsetsCompat.Type.statusBars())
-                val n = i.getInsets(WindowInsetsCompat.Type.navigationBars())
-                (v?.layoutParams as ViewGroup.MarginLayoutParams).apply {
+                val s = i.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.statusBars())
+                val n = i.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.navigationBars())
+                v.layoutParams = (v.layoutParams as ViewGroup.MarginLayoutParams).apply {
                     this.updateMarginsRelative(
                         top = s.top + marginTop,
                         bottom = n.bottom + marginBottom

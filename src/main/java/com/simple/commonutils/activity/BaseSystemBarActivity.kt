@@ -4,7 +4,10 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.Message
 import android.view.View
+import android.view.Window
+import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
 import androidx.annotation.CallSuper
@@ -32,6 +35,8 @@ abstract class BaseSystemBarActivity : AppCompatActivity() {
     protected open val isHideNavBar = false
 
     protected open val isSticky = false
+
+    protected open val useWindowInsetsController = true
 
     private var sysVisibility = 0
 
@@ -72,7 +77,9 @@ abstract class BaseSystemBarActivity : AppCompatActivity() {
     }
 
     protected open fun lightOrDefaultSystemBar() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && useWindowInsetsController) {
+            checkLightR()
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             window.decorView.systemUiVisibility = (window.decorView.systemUiVisibility
                     or (if (!isLightStatusBar) 0 else View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR)
                     or (if (!isLightNavBar) 0 else View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR))
@@ -80,11 +87,11 @@ abstract class BaseSystemBarActivity : AppCompatActivity() {
             window.decorView.systemUiVisibility = (window.decorView.systemUiVisibility
                     or (if (!isLightStatusBar) 0 else View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR))
         }
-        checkLightR()
+        // checkLightR() // 不是都设置
     }
 
-    private fun checkLightR() {// todo is ok?
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+    private fun checkLightR() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && useWindowInsetsController) {
             if (isLightStatusBar)
                 window.decorView.windowInsetsController?.setSystemBarsAppearance(
                     WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
@@ -112,63 +119,146 @@ abstract class BaseSystemBarActivity : AppCompatActivity() {
     }
 
     protected fun hideOrShowNavBar(isHideNavBar: Boolean) {
-        window.decorView.systemUiVisibility = (
-                if (isHideNavBar) window.decorView.systemUiVisibility or
-                        View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                else window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_HIDE_NAVIGATION.inv())
-        sysVisibility = window.decorView.systemUiVisibility
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && useWindowInsetsController) {
+            if (isHideNavBar) {
+                window.decorView.windowInsetsController?.hide(WindowInsets.Type.navigationBars())
+            }
+        } else {
+            window.decorView.systemUiVisibility = (
+                    if (isHideNavBar) window.decorView.systemUiVisibility or
+                            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    // or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    else window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_HIDE_NAVIGATION.inv())
+        }
     }
 
     protected fun hideOrShowStatusBar(isHideStatusBar: Boolean) {
-        window.decorView.systemUiVisibility = (
-                if (isHideStatusBar) window.decorView.systemUiVisibility or
-                        View.SYSTEM_UI_FLAG_FULLSCREEN or
-                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                else window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_FULLSCREEN.inv())
-        sysVisibility = window.decorView.systemUiVisibility
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && useWindowInsetsController) {
+            if (isHideStatusBar) {
+                window.decorView.windowInsetsController?.hide(WindowInsets.Type.statusBars())
+            }
+        } else {
+            window.decorView.systemUiVisibility = (
+                    if (isHideStatusBar) window.decorView.systemUiVisibility or
+                            View.SYSTEM_UI_FLAG_FULLSCREEN
+                    // or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    else window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_FULLSCREEN.inv())
+        }
     }
 
     private fun stickySystemBar(stickyInterval: Long) {
-        sysVisibility = window.decorView.systemUiVisibility
-        window.decorView.setOnSystemUiVisibilityChangeListener {
-            if (it != sysVisibility) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && useWindowInsetsController) {
+            window.decorView.setOnApplyWindowInsetsListener { v, insets ->
                 if (viabilityHandler == null) {
-                    viabilityHandler = Handler(Looper.getMainLooper())
-                }
-                if (resetRunnable == null) {
-                    resetRunnable = Runnable {
-                        window.decorView.systemUiVisibility = sysVisibility
-                        checkLightR()
+                    viabilityHandler = object : Handler(Looper.getMainLooper()) {
+                        override fun handleMessage(msg: Message) {
+                            super.handleMessage(msg)
+                            when (msg.what) {
+                                0 -> {
+                                    window.decorView.windowInsetsController?.hide(WindowInsets.Type.systemBars())
+                                }
+
+                                1 -> {
+                                    window.decorView.windowInsetsController?.hide(WindowInsets.Type.statusBars())
+                                }
+
+                                2 -> {
+                                    window.decorView.windowInsetsController?.hide(WindowInsets.Type.navigationBars())
+                                }
+                            }
+                        }
                     }
                 }
-                viabilityHandler!!.removeCallbacks(resetRunnable!!)
-                viabilityHandler!!.postDelayed(resetRunnable!!, stickyInterval)
+                var type = -1
+                when {
+                    isHideStatusBar && isHideNavBar -> {
+                        if (insets.isVisible(WindowInsets.Type.statusBars())
+                            || insets.isVisible(WindowInsets.Type.navigationBars())
+                        ) {
+                            type = 0
+                        }
+                    }
+
+                    isHideStatusBar -> {
+                        if (insets.isVisible(WindowInsets.Type.statusBars())) {
+                            type = 1
+                        }
+                    }
+
+                    isHideNavBar -> {
+                        if (insets.isVisible(WindowInsets.Type.navigationBars())) {
+                            type = 2
+                        }
+                    }
+                }
+                if (type != -1) {
+                    viabilityHandler!!.removeCallbacksAndMessages(null)
+                    viabilityHandler!!.sendMessageDelayed(
+                        Message.obtain().apply { this.what = type }, stickyInterval
+                    )
+                }
+                return@setOnApplyWindowInsetsListener insets
+            }
+        } else {
+            sysVisibility = window.decorView.systemUiVisibility
+            window.decorView.setOnSystemUiVisibilityChangeListener {
+                if (it != sysVisibility) {
+                    if (viabilityHandler == null) {
+                        viabilityHandler = Handler(Looper.getMainLooper())
+                    }
+                    if (resetRunnable == null) {
+                        resetRunnable = Runnable {
+                            window.decorView.systemUiVisibility = sysVisibility
+                        }
+                    }
+                    viabilityHandler!!.removeCallbacksAndMessages(null)
+                    viabilityHandler!!.postDelayed(resetRunnable!!, stickyInterval)
+                }
             }
         }
     }
 
     protected fun contentExtendStatusNav() {
         cutoutMode()
-        window.decorView.systemUiVisibility = (window.decorView.systemUiVisibility
-                or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && useWindowInsetsController) {
+            window.setDecorFitsSystemWindows(false)
+            window.attributes.isFitInsetsIgnoringVisibility = true
+            window.attributes.fitInsetsTypes = WindowInsets.Type.systemBars()
+        } else {
+            window.decorView.systemUiVisibility = (window.decorView.systemUiVisibility
+                    // 注意配合getInsetsIgnoringVisibility，如果不使用SYSTEM_UI_FLAG_LAYOUT_STABLE，则使用getInsets，代表systemBar会跟随移动
+                    or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION)
+        }
     }
 
     protected fun contentExtendStatus() {
         cutoutMode()
-        window.decorView.systemUiVisibility = (window.decorView.systemUiVisibility
-                or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && useWindowInsetsController) {
+            window.setDecorFitsSystemWindows(false)
+            window.attributes.isFitInsetsIgnoringVisibility = true
+            window.attributes.fitInsetsTypes = WindowInsets.Type.statusBars()
+        } else {
+            window.decorView.systemUiVisibility = (window.decorView.systemUiVisibility
+                    // 注意配合getInsetsIgnoringVisibility，如果不使用SYSTEM_UI_FLAG_LAYOUT_STABLE，则使用getInsets，代表systemBar会跟随移动
+                    or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+        }
     }
-
 
     protected fun contentExtendNav() {
         cutoutMode()
-        window.decorView.systemUiVisibility = (window.decorView.systemUiVisibility
-                or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && useWindowInsetsController) {
+            window.setDecorFitsSystemWindows(false)
+            window.attributes.isFitInsetsIgnoringVisibility = true
+            window.attributes.fitInsetsTypes = WindowInsets.Type.navigationBars()
+        } else {
+            window.decorView.systemUiVisibility = (window.decorView.systemUiVisibility
+                    // 注意配合getInsetsIgnoringVisibility，如果不使用SYSTEM_UI_FLAG_LAYOUT_STABLE，则使用getInsets，代表systemBar会跟随移动
+                    or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION)
+        }
     }
 
     protected fun cutoutMode() {
@@ -176,5 +266,11 @@ abstract class BaseSystemBarActivity : AppCompatActivity() {
             window.attributes.layoutInDisplayCutoutMode =
                 WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
+    }
+
+    @CallSuper
+    override fun onDestroy() {
+        super.onDestroy()
+        viabilityHandler?.removeCallbacksAndMessages(null)
     }
 }

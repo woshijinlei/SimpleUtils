@@ -7,6 +7,9 @@ fun Activity.start(java: Class<*>) {
     startActivity(Intent(this, java))
 }
 
-inline fun <reified T> Activity.start() {
-    startActivity(Intent(this, T::class.java))
+inline fun <reified T> Activity.start(config: Intent.() -> Unit = {}) {
+    Intent(this, T::class.java).apply {
+        config()
+        startActivity(this)
+    }
 }
